@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { apiError, apiSuccess, ErrorCode } from '../lib/errors';
-import { getUserClient } from '../middleware/auth';
 import { checkRateLimit } from '../middleware/rateLimit';
 
 function normalizeGenre(genre: string | null | undefined): string {
@@ -13,19 +12,14 @@ const router = Router();
 
 // ── GET /user-books ── 목록 조회 (rank 순)
 router.get('/', async (req, res) => {
-	const auth = await getUserClient(req.headers.authorization);
-	if (!auth)
-		return void apiError(res, ErrorCode.UNAUTHORIZED, '로그인이 필요합니다.');
-
-	const { allowed } = checkRateLimit(auth.user.id);
+	const { supabase, user } = req.auth;
+	const { allowed } = checkRateLimit(user.id);
 	if (!allowed)
 		return void apiError(
 			res,
 			ErrorCode.RATE_LIMITED,
 			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
 		);
-
-	const { supabase, user } = auth;
 
 	const { data, error } = await supabase
 		.from('user_books')
@@ -41,11 +35,8 @@ router.get('/', async (req, res) => {
 
 // ── GET /user-books/:id ── 단건 조회
 router.get('/:id', async (req, res) => {
-	const auth = await getUserClient(req.headers.authorization);
-	if (!auth)
-		return void apiError(res, ErrorCode.UNAUTHORIZED, '로그인이 필요합니다.');
-
-	const { allowed } = checkRateLimit(auth.user.id);
+	const { supabase, user } = req.auth;
+	const { allowed } = checkRateLimit(user.id);
 	if (!allowed)
 		return void apiError(
 			res,
@@ -53,11 +44,11 @@ router.get('/:id', async (req, res) => {
 			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
 		);
 
-	const { data, error } = await auth.supabase
+	const { data, error } = await supabase
 		.from('user_books')
 		.select('id, rank, start_date, end_date, created_at, updated_at, books (*)')
 		.eq('id', req.params.id)
-		.eq('user_id', auth.user.id)
+		.eq('user_id', user.id)
 		.single();
 
 	if (error || !data)
@@ -67,11 +58,8 @@ router.get('/:id', async (req, res) => {
 
 // ── POST /user-books ── 책 추가
 router.post('/', async (req, res) => {
-	const auth = await getUserClient(req.headers.authorization);
-	if (!auth)
-		return void apiError(res, ErrorCode.UNAUTHORIZED, '로그인이 필요합니다.');
-
-	const { allowed } = checkRateLimit(auth.user.id);
+	const { supabase, user } = req.auth;
+	const { allowed } = checkRateLimit(user.id);
 	if (!allowed)
 		return void apiError(
 			res,
@@ -87,8 +75,6 @@ router.post('/', async (req, res) => {
 			ErrorCode.MISSING_PARAM,
 			'book.title이 필요합니다.',
 		);
-
-	const { supabase, user } = auth;
 
 	// author(string) 또는 authors(array) 모두 허용
 	const authors: string[] = Array.isArray(book.authors)
@@ -176,11 +162,8 @@ router.post('/', async (req, res) => {
 
 // ── PUT /user-books/rank ── 순위 일괄 변경
 router.put('/rank', async (req, res) => {
-	const auth = await getUserClient(req.headers.authorization);
-	if (!auth)
-		return void apiError(res, ErrorCode.UNAUTHORIZED, '로그인이 필요합니다.');
-
-	const { allowed } = checkRateLimit(auth.user.id);
+	const { supabase, user } = req.auth;
+	const { allowed } = checkRateLimit(user.id);
 	if (!allowed)
 		return void apiError(
 			res,
@@ -190,9 +173,11 @@ router.put('/rank', async (req, res) => {
 
 	const { ids } = req.body ?? {};
 	if (!Array.isArray(ids) || ids.length === 0)
-		return void apiError(res, ErrorCode.MISSING_PARAM, 'ids 배열이 필요합니다.');
-
-	const { supabase, user } = auth;
+		return void apiError(
+			res,
+			ErrorCode.MISSING_PARAM,
+			'ids 배열이 필요합니다.',
+		);
 
 	await Promise.all(
 		ids.map((id: string, index: number) =>
@@ -209,11 +194,8 @@ router.put('/rank', async (req, res) => {
 
 // ── PATCH /user-books/:id ── 날짜 수정
 router.patch('/:id', async (req, res) => {
-	const auth = await getUserClient(req.headers.authorization);
-	if (!auth)
-		return void apiError(res, ErrorCode.UNAUTHORIZED, '로그인이 필요합니다.');
-
-	const { allowed } = checkRateLimit(auth.user.id);
+	const { supabase, user } = req.auth;
+	const { allowed } = checkRateLimit(user.id);
 	if (!allowed)
 		return void apiError(
 			res,
@@ -234,12 +216,14 @@ router.patch('/:id', async (req, res) => {
 			'수정할 항목(start_date, end_date)이 없습니다.',
 		);
 
-	const { data, error } = await auth.supabase
+	const { data, error } = await supabase
 		.from('user_books')
 		.update(updates)
 		.eq('id', req.params.id)
-		.eq('user_id', auth.user.id)
-		.select('id, rank, start_date, end_date, updated_at, books (id, title, thumbnail)')
+		.eq('user_id', user.id)
+		.select(
+			'id, rank, start_date, end_date, updated_at, books (id, title, thumbnail)',
+		)
 		.single();
 
 	if (error || !data)
@@ -249,11 +233,8 @@ router.patch('/:id', async (req, res) => {
 
 // ── DELETE /user-books/:id ── 삭제
 router.delete('/:id', async (req, res) => {
-	const auth = await getUserClient(req.headers.authorization);
-	if (!auth)
-		return void apiError(res, ErrorCode.UNAUTHORIZED, '로그인이 필요합니다.');
-
-	const { allowed } = checkRateLimit(auth.user.id);
+	const { supabase, user } = req.auth;
+	const { allowed } = checkRateLimit(user.id);
 	if (!allowed)
 		return void apiError(
 			res,
@@ -261,11 +242,11 @@ router.delete('/:id', async (req, res) => {
 			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
 		);
 
-	const { error } = await auth.supabase
+	const { error } = await supabase
 		.from('user_books')
 		.delete()
 		.eq('id', req.params.id)
-		.eq('user_id', auth.user.id);
+		.eq('user_id', user.id);
 
 	if (error) return void apiError(res, ErrorCode.INTERNAL_ERROR, error.message);
 	apiSuccess(res, { message: '삭제되었습니다.' });

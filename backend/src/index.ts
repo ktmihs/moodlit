@@ -1,6 +1,7 @@
 import cors from 'cors';
 import 'dotenv/config';
 import express from 'express';
+import { requireAuth } from './middleware/auth';
 import reviewsRouter from './routes/reviews';
 import searchBooksRouter from './routes/searchBooks';
 import userBooksRouter from './routes/userBooks';
@@ -9,6 +10,7 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(requireAuth);
 
 app.use('/search-books', searchBooksRouter);
 app.use('/reviews', reviewsRouter);

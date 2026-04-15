@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { apiError, apiSuccess, ErrorCode } from '../lib/errors';
-import { getUserClient } from '../middleware/auth';
 import { checkRateLimit } from '../middleware/rateLimit';
 
 interface Book {
@@ -114,11 +113,8 @@ async function searchGoogle(
 const router = Router();
 
 router.get('/', async (req, res) => {
-	const auth = await getUserClient(req.headers.authorization);
-	if (!auth)
-		return void apiError(res, ErrorCode.UNAUTHORIZED, '로그인이 필요합니다.');
-
-	const { allowed, remaining } = checkRateLimit(auth.user.id);
+	const { user } = req.auth;
+	const { allowed, remaining } = checkRateLimit(user.id);
 	if (!allowed)
 		return void apiError(
 			res,

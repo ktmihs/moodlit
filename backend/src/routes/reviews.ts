@@ -1,18 +1,14 @@
 import { Router } from 'express';
 import { generateEmbedding } from '../lib/embedding';
 import { apiError, apiSuccess, ErrorCode } from '../lib/errors';
-import { getUserClient } from '../middleware/auth';
 import { checkRateLimit } from '../middleware/rateLimit';
 
 const router = Router();
 
 // ── GET /reviews/:id ── 단건 조회
 router.get('/:id', async (req, res) => {
-	const auth = await getUserClient(req.headers.authorization);
-	if (!auth)
-		return void apiError(res, ErrorCode.UNAUTHORIZED, '로그인이 필요합니다.');
-
-	const { allowed } = checkRateLimit(auth.user.id);
+	const { supabase, user } = req.auth;
+	const { allowed } = checkRateLimit(user.id);
 	if (!allowed)
 		return void apiError(
 			res,
@@ -20,7 +16,7 @@ router.get('/:id', async (req, res) => {
 			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
 		);
 
-	const { data, error } = await auth.supabase
+	const { data, error } = await supabase
 		.from('reviews')
 		.select('id, content, keywords, ai_status, created_at, user_book_id')
 		.eq('id', req.params.id)
@@ -33,11 +29,8 @@ router.get('/:id', async (req, res) => {
 
 // ── POST /reviews ── 리뷰 작성
 router.post('/', async (req, res) => {
-	const auth = await getUserClient(req.headers.authorization);
-	if (!auth)
-		return void apiError(res, ErrorCode.UNAUTHORIZED, '로그인이 필요합니다.');
-
-	const { allowed } = checkRateLimit(auth.user.id);
+	const { supabase, user } = req.auth;
+	const { allowed } = checkRateLimit(user.id);
 	if (!allowed)
 		return void apiError(
 			res,
@@ -62,17 +55,17 @@ router.post('/', async (req, res) => {
 		);
 
 	// user_book이 본인 소유인지 확인
-	const { data: userBook } = await auth.supabase
+	const { data: userBook } = await supabase
 		.from('user_books')
 		.select('id')
 		.eq('id', user_book_id)
-		.eq('user_id', auth.user.id)
+		.eq('user_id', user.id)
 		.single();
 
 	if (!userBook)
 		return void apiError(res, ErrorCode.FORBIDDEN, '접근 권한이 없습니다.');
 
-	const { data, error } = await auth.supabase
+	const { data, error } = await supabase
 		.from('reviews')
 		.insert({
 			user_book_id,
@@ -91,11 +84,8 @@ router.post('/', async (req, res) => {
 
 // ── PATCH /reviews/:id ── 리뷰 수정
 router.patch('/:id', async (req, res) => {
-	const auth = await getUserClient(req.headers.authorization);
-	if (!auth)
-		return void apiError(res, ErrorCode.UNAUTHORIZED, '로그인이 필요합니다.');
-
-	const { allowed } = checkRateLimit(auth.user.id);
+	const { supabase, user } = req.auth;
+	const { allowed } = checkRateLimit(user.id);
 	if (!allowed)
 		return void apiError(
 			res,
@@ -120,7 +110,7 @@ router.patch('/:id', async (req, res) => {
 		);
 
 	// 소유권 확인: review → user_book → user_id
-	const { data: existing } = await auth.supabase
+	const { data: existing } = await supabase
 		.from('reviews')
 		.select('id, user_books!inner(user_id)')
 		.eq('id', req.params.id)
@@ -129,11 +119,13 @@ router.patch('/:id', async (req, res) => {
 	if (!existing)
 		return void apiError(res, ErrorCode.NOT_FOUND, '리뷰를 찾을 수 없습니다.');
 
-	const userBooks = (existing as unknown as { user_books: { user_id: string }[] }).user_books;
-	if (userBooks[0]?.user_id !== auth.user.id)
+	const userBooks = (
+		existing as unknown as { user_books: { user_id: string }[] }
+	).user_books;
+	if (userBooks[0]?.user_id !== user.id)
 		return void apiError(res, ErrorCode.FORBIDDEN, '접근 권한이 없습니다.');
 
-	const { data, error } = await auth.supabase
+	const { data, error } = await supabase
 		.from('reviews')
 		.update({
 			content: content.trim(),
@@ -154,11 +146,8 @@ router.patch('/:id', async (req, res) => {
 
 // ── DELETE /reviews/:id ── 리뷰 삭제
 router.delete('/:id', async (req, res) => {
-	const auth = await getUserClient(req.headers.authorization);
-	if (!auth)
-		return void apiError(res, ErrorCode.UNAUTHORIZED, '로그인이 필요합니다.');
-
-	const { allowed } = checkRateLimit(auth.user.id);
+	const { supabase, user } = req.auth;
+	const { allowed } = checkRateLimit(user.id);
 	if (!allowed)
 		return void apiError(
 			res,
@@ -167,7 +156,7 @@ router.delete('/:id', async (req, res) => {
 		);
 
 	// 소유권 확인: review → user_book → user_id
-	const { data: existing } = await auth.supabase
+	const { data: existing } = await supabase
 		.from('reviews')
 		.select('id, user_books!inner(user_id)')
 		.eq('id', req.params.id)
@@ -176,11 +165,13 @@ router.delete('/:id', async (req, res) => {
 	if (!existing)
 		return void apiError(res, ErrorCode.NOT_FOUND, '리뷰를 찾을 수 없습니다.');
 
-	const userBooks = (existing as unknown as { user_books: { user_id: string }[] }).user_books;
-	if (userBooks[0]?.user_id !== auth.user.id)
+	const userBooks = (
+		existing as unknown as { user_books: { user_id: string }[] }
+	).user_books;
+	if (userBooks[0]?.user_id !== user.id)
 		return void apiError(res, ErrorCode.FORBIDDEN, '접근 권한이 없습니다.');
 
-	const { error } = await auth.supabase
+	const { error } = await supabase
 		.from('reviews')
 		.delete()
 		.eq('id', req.params.id);

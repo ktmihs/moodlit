@@ -1,8 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { NextFunction, Request, Response } from 'express';
+import { apiError, ErrorCode } from '../lib/errors';
 
-export async function getUserClient(
-	authorization: string | undefined,
-) {
+export async function getUserClient(authorization: string | undefined) {
 	if (!authorization) return null;
 
 	const supabase = createClient(
@@ -18,6 +18,28 @@ export async function getUserClient(
 	if (error || !user) return null;
 
 	return { supabase, user };
+}
+
+type AuthContext = NonNullable<Awaited<ReturnType<typeof getUserClient>>>;
+
+declare global {
+	namespace Express {
+		interface Request {
+			auth: AuthContext;
+		}
+	}
+}
+
+export async function requireAuth(
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) {
+	const auth = await getUserClient(req.headers.authorization);
+	if (!auth)
+		return void apiError(res, ErrorCode.UNAUTHORIZED, '로그인이 필요합니다.');
+	req.auth = auth;
+	next();
 }
 
 let serviceClient: SupabaseClient | null = null;
