@@ -1,3 +1,6 @@
+import type { NextFunction, Request, Response } from 'express';
+import { apiError, ErrorCode } from '../lib/errors';
+
 const WINDOW_MS = 60_000; // 1분
 const MAX_REQUESTS = 100;
 
@@ -27,4 +30,19 @@ export function checkRateLimit(key: string): {
 		remaining: MAX_REQUESTS - entry.count,
 		resetAt: entry.resetAt,
 	};
+}
+
+export function rateLimitMiddleware(
+	req: Request,
+	res: Response,
+	next: NextFunction,
+) {
+	const { allowed } = checkRateLimit(req.auth.user.id);
+	if (!allowed)
+		return void apiError(
+			res,
+			ErrorCode.RATE_LIMITED,
+			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
+		);
+	next();
 }

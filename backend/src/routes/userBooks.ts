@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { apiError, apiSuccess, ErrorCode } from '../lib/errors';
-import { checkRateLimit } from '../middleware/rateLimit';
 
 function normalizeGenre(genre: string | null | undefined): string {
 	if (!genre || genre.trim() === '') return '기타';
@@ -13,13 +12,6 @@ const router = Router();
 // ── GET /user-books ── 목록 조회 (rank 순)
 router.get('/', async (req, res) => {
 	const { supabase, user } = req.auth;
-	const { allowed } = checkRateLimit(user.id);
-	if (!allowed)
-		return void apiError(
-			res,
-			ErrorCode.RATE_LIMITED,
-			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
-		);
 
 	const { data, error } = await supabase
 		.from('user_books')
@@ -36,13 +28,6 @@ router.get('/', async (req, res) => {
 // ── GET /user-books/:id ── 단건 조회
 router.get('/:id', async (req, res) => {
 	const { supabase, user } = req.auth;
-	const { allowed } = checkRateLimit(user.id);
-	if (!allowed)
-		return void apiError(
-			res,
-			ErrorCode.RATE_LIMITED,
-			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
-		);
 
 	const { data, error } = await supabase
 		.from('user_books')
@@ -58,16 +43,8 @@ router.get('/:id', async (req, res) => {
 
 // ── POST /user-books ── 책 추가
 router.post('/', async (req, res) => {
-	const { supabase, user } = req.auth;
-	const { allowed } = checkRateLimit(user.id);
-	if (!allowed)
-		return void apiError(
-			res,
-			ErrorCode.RATE_LIMITED,
-			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
-		);
-
 	const { book, start_date } = req.body ?? {};
+	const { supabase, user } = req.auth;
 
 	if (!book?.title)
 		return void apiError(
@@ -162,16 +139,9 @@ router.post('/', async (req, res) => {
 
 // ── PUT /user-books/rank ── 순위 일괄 변경
 router.put('/rank', async (req, res) => {
-	const { supabase, user } = req.auth;
-	const { allowed } = checkRateLimit(user.id);
-	if (!allowed)
-		return void apiError(
-			res,
-			ErrorCode.RATE_LIMITED,
-			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
-		);
-
 	const { ids } = req.body ?? {};
+	const { supabase, user } = req.auth;
+
 	if (!Array.isArray(ids) || ids.length === 0)
 		return void apiError(
 			res,
@@ -194,18 +164,10 @@ router.put('/rank', async (req, res) => {
 
 // ── PATCH /user-books/:id ── 날짜 수정
 router.patch('/:id', async (req, res) => {
-	const { supabase, user } = req.auth;
-	const { allowed } = checkRateLimit(user.id);
-	if (!allowed)
-		return void apiError(
-			res,
-			ErrorCode.RATE_LIMITED,
-			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
-		);
-
 	const { start_date, end_date } = req.body ?? {};
-	const updates: Record<string, unknown> = {};
+	const { supabase, user } = req.auth;
 
+	const updates: Record<string, unknown> = {};
 	if (start_date !== undefined) updates.start_date = start_date;
 	if (end_date !== undefined) updates.end_date = end_date;
 
@@ -234,13 +196,6 @@ router.patch('/:id', async (req, res) => {
 // ── DELETE /user-books/:id ── 삭제
 router.delete('/:id', async (req, res) => {
 	const { supabase, user } = req.auth;
-	const { allowed } = checkRateLimit(user.id);
-	if (!allowed)
-		return void apiError(
-			res,
-			ErrorCode.RATE_LIMITED,
-			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
-		);
 
 	const { error } = await supabase
 		.from('user_books')

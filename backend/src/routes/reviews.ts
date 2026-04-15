@@ -1,20 +1,12 @@
 import { Router } from 'express';
 import { generateEmbedding } from '../lib/embedding';
 import { apiError, apiSuccess, ErrorCode } from '../lib/errors';
-import { checkRateLimit } from '../middleware/rateLimit';
 
 const router = Router();
 
 // ── GET /reviews/:id ── 단건 조회
 router.get('/:id', async (req, res) => {
-	const { supabase, user } = req.auth;
-	const { allowed } = checkRateLimit(user.id);
-	if (!allowed)
-		return void apiError(
-			res,
-			ErrorCode.RATE_LIMITED,
-			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
-		);
+	const { supabase } = req.auth;
 
 	const { data, error } = await supabase
 		.from('reviews')
@@ -29,16 +21,9 @@ router.get('/:id', async (req, res) => {
 
 // ── POST /reviews ── 리뷰 작성
 router.post('/', async (req, res) => {
-	const { supabase, user } = req.auth;
-	const { allowed } = checkRateLimit(user.id);
-	if (!allowed)
-		return void apiError(
-			res,
-			ErrorCode.RATE_LIMITED,
-			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
-		);
-
 	const { user_book_id, content } = req.body ?? {};
+	const { supabase, user } = req.auth;
+
 	if (!user_book_id)
 		return void apiError(
 			res,
@@ -54,7 +39,7 @@ router.post('/', async (req, res) => {
 			'content는 2,000자 이내여야 합니다.',
 		);
 
-	// user_book이 본인 소유인지 확인
+	// user_book 소유권 확인
 	const { data: userBook } = await supabase
 		.from('user_books')
 		.select('id')
@@ -84,16 +69,9 @@ router.post('/', async (req, res) => {
 
 // ── PATCH /reviews/:id ── 리뷰 수정
 router.patch('/:id', async (req, res) => {
-	const { supabase, user } = req.auth;
-	const { allowed } = checkRateLimit(user.id);
-	if (!allowed)
-		return void apiError(
-			res,
-			ErrorCode.RATE_LIMITED,
-			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
-		);
-
 	const { content } = req.body ?? {};
+	const { supabase, user } = req.auth;
+
 	if (content === undefined)
 		return void apiError(res, ErrorCode.MISSING_PARAM, 'content가 필요합니다.');
 	if (content.trim().length === 0)
@@ -127,11 +105,7 @@ router.patch('/:id', async (req, res) => {
 
 	const { data, error } = await supabase
 		.from('reviews')
-		.update({
-			content: content.trim(),
-			embedding: null,
-			ai_status: 'pending',
-		})
+		.update({ content: content.trim(), embedding: null, ai_status: 'pending' })
 		.eq('id', req.params.id)
 		.select('id, content, ai_status, created_at, user_book_id')
 		.single();
@@ -147,13 +121,6 @@ router.patch('/:id', async (req, res) => {
 // ── DELETE /reviews/:id ── 리뷰 삭제
 router.delete('/:id', async (req, res) => {
 	const { supabase, user } = req.auth;
-	const { allowed } = checkRateLimit(user.id);
-	if (!allowed)
-		return void apiError(
-			res,
-			ErrorCode.RATE_LIMITED,
-			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
-		);
 
 	// 소유권 확인: review → user_book → user_id
 	const { data: existing } = await supabase

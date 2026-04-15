@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { apiError, apiSuccess, ErrorCode } from '../lib/errors';
-import { checkRateLimit } from '../middleware/rateLimit';
 
 interface Book {
 	google_id?: string;
@@ -113,15 +112,6 @@ async function searchGoogle(
 const router = Router();
 
 router.get('/', async (req, res) => {
-	const { user } = req.auth;
-	const { allowed, remaining } = checkRateLimit(user.id);
-	if (!allowed)
-		return void apiError(
-			res,
-			ErrorCode.RATE_LIMITED,
-			'요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
-		);
-
 	const query = req.query.q as string | undefined;
 	const page = parseInt((req.query.page as string) ?? '1', 10);
 	const limit = Math.min(parseInt((req.query.limit as string) ?? '10', 10), 40);
@@ -145,7 +135,6 @@ router.get('/', async (req, res) => {
 			page,
 			limit,
 			source: 'kakao',
-			remaining_requests: remaining,
 		});
 	}
 
@@ -164,7 +153,6 @@ router.get('/', async (req, res) => {
 		page,
 		limit,
 		source: 'google',
-		remaining_requests: remaining,
 	});
 });
 
