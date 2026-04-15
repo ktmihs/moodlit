@@ -4,6 +4,7 @@ import express from 'express';
 import { rateLimit } from 'express-rate-limit';
 import helmet from 'helmet';
 import { requireAuth } from './middleware/auth';
+import { errorHandler } from './middleware/errorHandler';
 import { rateLimitMiddleware } from './middleware/rateLimit';
 import reviewsRouter from './routes/reviews';
 import searchBooksRouter from './routes/searchBooks';
@@ -39,6 +40,7 @@ app.use(rateLimitMiddleware);
 app.use('/search-books', searchBooksRouter);
 app.use('/reviews', reviewsRouter);
 app.use('/user-books', userBooksRouter);
+app.use(errorHandler);
 
 const port = parseInt(process.env.PORT ?? '3000');
 
