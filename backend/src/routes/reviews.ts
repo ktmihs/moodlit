@@ -1,6 +1,23 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { generateEmbedding } from '../lib/embedding';
 import { apiError, apiSuccess, ErrorCode } from '../lib/errors';
+import { validate } from '../lib/validate';
+
+const postBody = z.object({
+	user_book_id: z.string().min(1, 'user_book_id가 필요합니다.'),
+	content: z
+		.string()
+		.min(1, 'content가 필요합니다.')
+		.max(2_000, 'content는 2,000자 이내여야 합니다.'),
+});
+
+const patchBody = z.object({
+	content: z
+		.string()
+		.min(1, 'content가 비어있습니다.')
+		.max(2_000, 'content는 2,000자 이내여야 합니다.'),
+});
 
 const router = Router();
 
@@ -20,26 +37,10 @@ router.get('/:id', async (req, res) => {
 });
 
 // ── POST /reviews ── 리뷰 작성
-router.post('/', async (req, res) => {
-	const { user_book_id, content } = req.body ?? {};
+router.post('/', validate({ body: postBody }), async (req, res) => {
+	const { user_book_id, content } = req.body as z.infer<typeof postBody>;
 	const { supabase, user } = req.auth;
 
-	if (!user_book_id)
-		return void apiError(
-			res,
-			ErrorCode.MISSING_PARAM,
-			'user_book_id가 필요합니다.',
-		);
-	if (!content || content.trim().length === 0)
-		return void apiError(res, ErrorCode.MISSING_PARAM, 'content가 필요합니다.');
-	if (content.trim().length > 2_000)
-		return void apiError(
-			res,
-			ErrorCode.VALIDATION_ERROR,
-			'content는 2,000자 이내여야 합니다.',
-		);
-
-	// user_book 소유권 확인
 	const { data: userBook } = await supabase
 		.from('user_books')
 		.select('id')
@@ -52,11 +53,7 @@ router.post('/', async (req, res) => {
 
 	const { data, error } = await supabase
 		.from('reviews')
-		.insert({
-			user_book_id,
-			content: content.trim(),
-			ai_status: 'pending',
-		})
+		.insert({ user_book_id, content: content.trim(), ai_status: 'pending' })
 		.select('id, content, ai_status, created_at, user_book_id')
 		.single();
 
@@ -68,26 +65,10 @@ router.post('/', async (req, res) => {
 });
 
 // ── PATCH /reviews/:id ── 리뷰 수정
-router.patch('/:id', async (req, res) => {
-	const { content } = req.body ?? {};
+router.patch('/:id', validate({ body: patchBody }), async (req, res) => {
+	const { content } = req.body as z.infer<typeof patchBody>;
 	const { supabase, user } = req.auth;
 
-	if (content === undefined)
-		return void apiError(res, ErrorCode.MISSING_PARAM, 'content가 필요합니다.');
-	if (content.trim().length === 0)
-		return void apiError(
-			res,
-			ErrorCode.VALIDATION_ERROR,
-			'content가 비어있습니다.',
-		);
-	if (content.trim().length > 2_000)
-		return void apiError(
-			res,
-			ErrorCode.VALIDATION_ERROR,
-			'content는 2,000자 이내여야 합니다.',
-		);
-
-	// 소유권 확인: review → user_book → user_id
 	const { data: existing } = await supabase
 		.from('reviews')
 		.select('id, user_books!inner(user_id)')
@@ -122,7 +103,6 @@ router.patch('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
 	const { supabase, user } = req.auth;
 
-	// 소유권 확인: review → user_book → user_id
 	const { data: existing } = await supabase
 		.from('reviews')
 		.select('id, user_books!inner(user_id)')

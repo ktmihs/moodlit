@@ -1,5 +1,7 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { apiError, apiSuccess, ErrorCode } from '../lib/errors';
+import { validate } from '../lib/validate';
 
 interface Book {
 	google_id?: string;
@@ -109,23 +111,20 @@ async function searchGoogle(
 	return { books, total: raw.totalItems ?? 0 };
 }
 
+const searchQuery = z.object({
+	q: z.string().min(1, '검색어를 입력해주세요.'),
+	page: z.coerce.number().int().min(1).default(1),
+	limit: z.coerce.number().int().min(1).max(40).default(10),
+});
+
 const router = Router();
 
-router.get('/', async (req, res) => {
-	const query = req.query.q as string | undefined;
-	const page = parseInt((req.query.page as string) ?? '1', 10);
-	const limit = Math.min(parseInt((req.query.limit as string) ?? '10', 10), 40);
+router.get('/', validate({ query: searchQuery }), async (req, res) => {
+	const { q, page, limit } = req.query as unknown as z.infer<
+		typeof searchQuery
+	>;
 
-	if (!query || query.trim().length === 0) {
-		return void apiError(
-			res,
-			ErrorCode.MISSING_PARAM,
-			'검색어(q)가 필요합니다.',
-		);
-	}
-
-	// 카카오 우선 검색
-	const kakao = await searchKakao(query.trim(), page, limit);
+	const kakao = await searchKakao(q.trim(), page, limit);
 
 	// 카카오 결과가 부족하면 구글로 보완
 	if (kakao.books.length >= limit || kakao.total > 0) {
@@ -138,7 +137,7 @@ router.get('/', async (req, res) => {
 		});
 	}
 
-	const google = await searchGoogle(query.trim(), page, limit);
+	const google = await searchGoogle(q.trim(), page, limit);
 	if (google.books.length === 0) {
 		return void apiError(
 			res,

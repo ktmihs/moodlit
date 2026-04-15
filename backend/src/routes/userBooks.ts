@@ -1,11 +1,52 @@
 import { Router } from 'express';
+import { z } from 'zod';
 import { apiError, apiSuccess, ErrorCode } from '../lib/errors';
+import { validate } from '../lib/validate';
 
 function normalizeGenre(genre: string | null | undefined): string {
 	if (!genre || genre.trim() === '') return '기타';
 	const trimmed = genre.trim().toLowerCase();
 	return trimmed.includes('/') ? trimmed.split('/')[0].trim() : trimmed;
 }
+
+const bookSchema = z.object({
+	isbn: z.string().optional(),
+	title: z.string().min(1, '제목이 필요합니다.'),
+	author: z.string().optional(),
+	authors: z.array(z.string()).optional(),
+	thumbnail: z.string().optional().nullable(),
+	cover_image_url: z.string().optional().nullable(),
+	description: z.string().optional().nullable(),
+	genre: z.string().optional().nullable(),
+});
+
+const postBody = z.object({
+	book: bookSchema,
+	start_date: z
+		.string()
+		.regex(/^\d{4}-\d{2}-\d{2}$/, '날짜 형식은 YYYY-MM-DD여야 합니다.')
+		.optional(),
+});
+
+const patchBody = z
+	.object({
+		start_date: z
+			.string()
+			.regex(/^\d{4}-\d{2}-\d{2}$/, '날짜 형식은 YYYY-MM-DD여야 합니다.')
+			.optional(),
+		end_date: z
+			.string()
+			.regex(/^\d{4}-\d{2}-\d{2}$/, '날짜 형식은 YYYY-MM-DD여야 합니다.')
+			.optional()
+			.nullable(),
+	})
+	.refine(d => d.start_date !== undefined || d.end_date !== undefined, {
+		message: '수정할 항목(start_date, end_date)이 없습니다.',
+	});
+
+const rankBody = z.object({
+	ids: z.array(z.string()).min(1, 'ids 배열이 필요합니다.'),
+});
 
 const router = Router();
 
@@ -42,18 +83,10 @@ router.get('/:id', async (req, res) => {
 });
 
 // ── POST /user-books ── 책 추가
-router.post('/', async (req, res) => {
-	const { book, start_date } = req.body ?? {};
+router.post('/', validate({ body: postBody }), async (req, res) => {
+	const { book, start_date } = req.body as z.infer<typeof postBody>;
 	const { supabase, user } = req.auth;
 
-	if (!book?.title)
-		return void apiError(
-			res,
-			ErrorCode.MISSING_PARAM,
-			'book.title이 필요합니다.',
-		);
-
-	// author(string) 또는 authors(array) 모두 허용
 	const authors: string[] = Array.isArray(book.authors)
 		? book.authors
 		: book.author
@@ -138,16 +171,9 @@ router.post('/', async (req, res) => {
 });
 
 // ── PUT /user-books/rank ── 순위 일괄 변경
-router.put('/rank', async (req, res) => {
-	const { ids } = req.body ?? {};
+router.put('/rank', validate({ body: rankBody }), async (req, res) => {
+	const { ids } = req.body as z.infer<typeof rankBody>;
 	const { supabase, user } = req.auth;
-
-	if (!Array.isArray(ids) || ids.length === 0)
-		return void apiError(
-			res,
-			ErrorCode.MISSING_PARAM,
-			'ids 배열이 필요합니다.',
-		);
 
 	await Promise.all(
 		ids.map((id: string, index: number) =>
@@ -163,20 +189,13 @@ router.put('/rank', async (req, res) => {
 });
 
 // ── PATCH /user-books/:id ── 날짜 수정
-router.patch('/:id', async (req, res) => {
-	const { start_date, end_date } = req.body ?? {};
+router.patch('/:id', validate({ body: patchBody }), async (req, res) => {
+	const { start_date, end_date } = req.body as z.infer<typeof patchBody>;
 	const { supabase, user } = req.auth;
 
 	const updates: Record<string, unknown> = {};
 	if (start_date !== undefined) updates.start_date = start_date;
 	if (end_date !== undefined) updates.end_date = end_date;
-
-	if (Object.keys(updates).length === 0)
-		return void apiError(
-			res,
-			ErrorCode.MISSING_PARAM,
-			'수정할 항목(start_date, end_date)이 없습니다.',
-		);
 
 	const { data, error } = await supabase
 		.from('user_books')
