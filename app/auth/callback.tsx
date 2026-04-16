@@ -1,4 +1,4 @@
-import { router, useLocalSearchParams } from 'expo-router';
+import { Href, router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { supabase } from '../../lib/supabase';
@@ -14,9 +14,9 @@ export default function AuthCallback() {
 		if (accessToken && refreshToken) {
 			supabase.auth
 				.setSession({ access_token: accessToken, refresh_token: refreshToken })
-				.then(() => router.replace('/(tabs)/'));
+				.then(() => router.replace('/(tabs)'));
 		} else {
-			router.replace('/(auth)/login');
+			router.replace('/(auth)/login' as Href);
 		}
 	}, [params]);
 
