@@ -1,5 +1,6 @@
 import { Href, Redirect, Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useAuth } from '../hooks/useAuth';
 
 export default function RootLayout() {
@@ -14,11 +15,14 @@ export default function RootLayout() {
 	}
 
 	return (
-		<Stack screenOptions={{ headerShown: false }}>
-			<Stack.Screen name="(auth)" />
-			<Stack.Screen name="(tabs)" />
-			<Stack.Screen name="auth/callback" />
-			{!session && <Redirect href={'/(auth)/login' as Href} />}
-		</Stack>
+		<>
+			<Stack screenOptions={{ headerShown: false }}>
+				<Stack.Screen name="(auth)" />
+				<Stack.Screen name="(tabs)" />
+				<Stack.Screen name="auth/callback" />
+				{!session && <Redirect href={'/(auth)/login' as Href} />}
+			</Stack>
+			<Toast />
+		</>
 	);
 }

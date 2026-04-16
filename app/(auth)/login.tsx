@@ -1,8 +1,8 @@
+import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
 	ActivityIndicator,
-	Alert,
 	KeyboardAvoidingView,
 	Platform,
 	Pressable,
@@ -11,28 +11,44 @@ import {
 	TextInput,
 	View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { supabase } from '../../lib/supabase';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const REDIRECT_URL = 'moodlit://auth/callback';
 
+const AUTH_ERROR_CODES: Record<string, string> = {
+	invalid_credentials: '이메일 또는 비밀번호가 올바르지 않습니다.',
+	email_not_confirmed: '이메일 인증이 필요합니다. 받은 편지함을 확인해주세요.',
+	user_already_exists: '이미 가입된 이메일입니다.',
+	weak_password: '비밀번호는 6자 이상이어야 합니다.',
+	invalid_email: '올바른 이메일 형식이 아닙니다.',
+	over_email_send_rate_limit: '잠시 후 다시 시도해주세요.',
+	over_request_rate_limit: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
+	email_address_invalid: '올바른 이메일 형식이 아닙니다.',
+};
+
+function toKoreanError(err: unknown): string {
+	// Supabase AuthError는 code 프로퍼티를 가짐
+	const code = (err as { code?: string })?.code;
+	if (code && AUTH_ERROR_CODES[code]) return AUTH_ERROR_CODES[code];
+	return err instanceof Error ? err.message : '오류가 발생했습니다.';
+}
+
 export default function LoginScreen() {
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [isSignUp, setIsSignUp] = useState(false);
-	const [loading, setLoading] = useState<'email' | 'google' | 'apple' | null>(null);
-
-	useEffect(() => {
-		// deep link로 돌아온 OAuth 세션 처리
-		supabase.auth.getSession();
-	}, []);
-
+	const [loading, setLoading] = useState<'email' | 'google' | 'apple' | null>(
+		null,
+	);
 	async function handleEmailAuth() {
 		if (!email.trim() || !password.trim()) {
-			Alert.alert('입력 오류', '이메일과 비밀번호를 입력해주세요.');
+			Toast.show({ type: 'error', text1: '이메일과 비밀번호를 입력해주세요.' });
 			return;
 		}
+
 		setLoading('email');
 		try {
 			if (isSignUp) {
@@ -41,16 +57,23 @@ export default function LoginScreen() {
 					password,
 				});
 				if (error) throw error;
-				Alert.alert('회원가입 완료', '이메일을 확인해주세요.');
+				Toast.show({
+					type: 'success',
+					text1: '회원가입 완료',
+					text2: '로그인해주세요.',
+				});
+				setIsSignUp(false);
+				setPassword('');
 			} else {
 				const { error } = await supabase.auth.signInWithPassword({
 					email: email.trim(),
 					password,
 				});
 				if (error) throw error;
+				router.replace('/(tabs)');
 			}
 		} catch (err: unknown) {
-			Alert.alert('오류', err instanceof Error ? err.message : '오류가 발생했습니다.');
+			Toast.show({ type: 'error', text1: toKoreanError(err) });
 		} finally {
 			setLoading(null);
 		}
@@ -66,21 +89,27 @@ export default function LoginScreen() {
 			if (error) throw error;
 			if (!data.url) throw new Error('OAuth URL을 받지 못했습니다.');
 
-			const result = await WebBrowser.openAuthSessionAsync(data.url, REDIRECT_URL);
+			const result = await WebBrowser.openAuthSessionAsync(
+				data.url,
+				REDIRECT_URL,
+			);
 
 			if (result.type === 'success') {
 				const url = new URL(result.url);
-				// URL fragment에서 토큰 추출 (#access_token=...&refresh_token=...)
 				const params = new URLSearchParams(url.hash.slice(1));
 				const accessToken = params.get('access_token');
 				const refreshToken = params.get('refresh_token');
 
 				if (accessToken && refreshToken) {
-					await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+					await supabase.auth.setSession({
+						access_token: accessToken,
+						refresh_token: refreshToken,
+					});
+					router.replace('/(tabs)');
 				}
 			}
 		} catch (err: unknown) {
-			Alert.alert('오류', err instanceof Error ? err.message : '로그인에 실패했습니다.');
+			Toast.show({ type: 'error', text1: toKoreanError(err) });
 		} finally {
 			setLoading(null);
 		}
@@ -97,7 +126,10 @@ export default function LoginScreen() {
 
 				<View style={styles.oauthGroup}>
 					<Pressable
-						style={[styles.oauthButton, loading === 'google' && styles.buttonDisabled]}
+						style={[
+							styles.oauthButton,
+							loading === 'google' && styles.buttonDisabled,
+						]}
 						onPress={() => handleOAuth('google')}
 						disabled={loading !== null}
 					>
@@ -110,14 +142,20 @@ export default function LoginScreen() {
 
 					{Platform.OS === 'ios' && (
 						<Pressable
-							style={[styles.oauthButton, styles.appleButton, loading === 'apple' && styles.buttonDisabled]}
+							style={[
+								styles.oauthButton,
+								styles.appleButton,
+								loading === 'apple' && styles.buttonDisabled,
+							]}
 							onPress={() => handleOAuth('apple')}
 							disabled={loading !== null}
 						>
 							{loading === 'apple' ? (
 								<ActivityIndicator color="#fff" />
 							) : (
-								<Text style={[styles.oauthText, styles.appleText]}>Apple로 계속하기</Text>
+								<Text style={[styles.oauthText, styles.appleText]}>
+									Apple로 계속하기
+								</Text>
 							)}
 						</Pressable>
 					)}
@@ -150,18 +188,28 @@ export default function LoginScreen() {
 					/>
 
 					<Pressable
-						style={[styles.button, loading === 'email' && styles.buttonDisabled]}
+						style={[
+							styles.button,
+							loading === 'email' && styles.buttonDisabled,
+						]}
 						onPress={handleEmailAuth}
 						disabled={loading !== null}
 					>
 						{loading === 'email' ? (
 							<ActivityIndicator color="#fff" />
 						) : (
-							<Text style={styles.buttonText}>{isSignUp ? '회원가입' : '로그인'}</Text>
+							<Text style={styles.buttonText}>
+								{isSignUp ? '회원가입' : '로그인'}
+							</Text>
 						)}
 					</Pressable>
 
-					<Pressable onPress={() => setIsSignUp(v => !v)} style={styles.switchButton}>
+					<Pressable
+						onPress={() => {
+							setIsSignUp(v => !v);
+						}}
+						style={styles.switchButton}
+					>
 						<Text style={styles.switchText}>
 							{isSignUp
 								? '이미 계정이 있으신가요? 로그인'

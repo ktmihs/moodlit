@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
 	ActivityIndicator,
-	Alert,
 	FlatList,
 	Pressable,
 	StyleSheet,
@@ -12,6 +11,7 @@ import {
 	View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 import { supabase } from '../../lib/supabase';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
@@ -169,15 +169,17 @@ export default function SearchScreen() {
 		setAdding(key);
 		try {
 			await addToLibrary(book);
-			Alert.alert('완료', `"${book.title}"을(를) 서재에 담았습니다.`, [
-				{ text: '서재 보기', onPress: () => router.replace('/(tabs)') },
-				{ text: '계속 검색' },
-			]);
+			Toast.show({
+				type: 'success',
+				text1: '서재에 담았습니다',
+				text2: book.title,
+				onPress: () => router.replace('/(tabs)'),
+			});
 		} catch (err: unknown) {
-			Alert.alert(
-				'오류',
-				err instanceof Error ? err.message : '추가에 실패했습니다.',
-			);
+			Toast.show({
+				type: 'error',
+				text1: err instanceof Error ? err.message : '추가에 실패했습니다.',
+			});
 		} finally {
 			setAdding(null);
 		}
