@@ -116,6 +116,45 @@ export function useUserBooks() {
 		});
 	}, []);
 
+	const deleteBook = useCallback(
+		(book: UserBook) => {
+			removeBook(book.id);
+
+			const timerId = setTimeout(async () => {
+				try {
+					const {
+						data: { session },
+					} = await supabase.auth.getSession();
+					const res = await fetch(`${API_BASE}/user-books/${book.id}`, {
+						method: 'DELETE',
+						headers: { Authorization: `Bearer ${session?.access_token}` },
+					});
+					if (!res.ok) {
+						restoreBook(book);
+						Toast.show({ type: 'error', text1: '삭제에 실패했습니다.' });
+					}
+				} catch (err) {
+					restoreBook(book);
+					showApiError(err);
+				}
+			}, 2000);
+
+			Toast.show({
+				type: 'info',
+				text1: '책을 서재에서 삭제했습니다.',
+				text2: '탭하여 실행 취소',
+				onPress: () => {
+					clearTimeout(timerId);
+					restoreBook(book);
+					Toast.hide();
+				},
+				visibilityTime: 2000,
+				autoHide: true,
+			});
+		},
+		[removeBook, restoreBook],
+	);
+
 	return {
 		userBooks,
 		loading,
@@ -126,7 +165,6 @@ export function useUserBooks() {
 		onRefresh,
 		onEndReached,
 		handleDragEnd,
-		removeBook,
-		restoreBook,
+		deleteBook,
 	};
 }

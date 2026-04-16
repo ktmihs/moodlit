@@ -30,6 +30,7 @@ export default function HomeScreen() {
 		onRefresh,
 		onEndReached,
 		handleDragEnd,
+		deleteBook,
 	} = useUserBooks();
 
 	const toggleEditMode = useCallback(async () => {
@@ -70,7 +71,7 @@ export default function HomeScreen() {
 					<DraggableFlatList
 						data={userBooks}
 						keyExtractor={item => item.id}
-						renderItem={DragRow}
+						renderItem={params => <DragRow {...params} onDelete={deleteBook} />}
 						onDragEnd={handleDragEnd}
 						contentContainerStyle={styles.dragList}
 					/>
