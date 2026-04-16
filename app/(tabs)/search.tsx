@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import { handleApiResponse } from '../../lib/apiError';
 import { supabase } from '../../lib/supabase';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
@@ -45,7 +46,7 @@ async function searchBooks(query: string, page: number): Promise<SearchResult> {
 	const res = await fetch(url, {
 		headers: token ? { Authorization: `Bearer ${token}` } : {},
 	});
-	if (!res.ok) throw new Error('검색에 실패했습니다.');
+	await handleApiResponse(res);
 	return res.json();
 }
 
@@ -65,10 +66,7 @@ async function addToLibrary(book: SearchBook): Promise<void> {
 		body: JSON.stringify({ book }),
 	});
 
-	const json = await res.json();
-	if (!res.ok) {
-		throw new Error(json.error?.message ?? '추가에 실패했습니다.');
-	}
+	await handleApiResponse(res);
 }
 
 function BookItem({
