@@ -27,6 +27,7 @@ interface UserBook {
 }
 
 const NUM_COLUMNS = 3;
+const PAGE_SIZE = 21; // 3의 배수 (열 맞춤)
 const PLACEHOLDER_COLOR = '#f0f0f0';
 
 function BookCard({ item }: { item: UserBook }) {
@@ -59,30 +60,50 @@ export default function HomeScreen() {
 	const insets = useSafeAreaInsets();
 	const [userBooks, setUserBooks] = useState<UserBook[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [loadingMore, setLoadingMore] = useState(false);
 	const [refreshing, setRefreshing] = useState(false);
+	const [hasMore, setHasMore] = useState(true);
+	const [page, setPage] = useState(0);
 
-	const fetchUserBooks = useCallback(async () => {
+	const fetchPage = useCallback(async (pageIndex: number, replace: boolean) => {
+		const from = pageIndex * PAGE_SIZE;
+		const to = from + PAGE_SIZE - 1;
+
 		const { data, error } = await supabase
 			.from('user_books')
 			.select(
 				'id, rank, start_date, end_date, books (id, title, thumbnail, genre)',
 			)
-			.order('rank', { ascending: true });
+			.order('rank', { ascending: true })
+			.range(from, to);
 
 		if (!error && data) {
-			setUserBooks(data as unknown as UserBook[]);
+			setUserBooks(prev =>
+				replace
+					? (data as unknown as UserBook[])
+					: [...prev, ...(data as unknown as UserBook[])],
+			);
+			setHasMore(data.length === PAGE_SIZE);
+			setPage(pageIndex);
 		}
 	}, []);
 
 	useEffect(() => {
-		fetchUserBooks().finally(() => setLoading(false));
-	}, [fetchUserBooks]);
+		fetchPage(0, true).finally(() => setLoading(false));
+	}, [fetchPage]);
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true);
-		await fetchUserBooks();
+		await fetchPage(0, true);
 		setRefreshing(false);
-	}, [fetchUserBooks]);
+	}, [fetchPage]);
+
+	const onEndReached = useCallback(async () => {
+		if (!hasMore || loadingMore) return;
+		setLoadingMore(true);
+		await fetchPage(page + 1, false);
+		setLoadingMore(false);
+	}, [hasMore, loadingMore, page, fetchPage]);
 
 	if (loading) {
 		return (
@@ -113,6 +134,11 @@ export default function HomeScreen() {
 					renderItem={({ item }) => <BookCard item={item} />}
 					contentContainerStyle={styles.grid}
 					columnWrapperStyle={styles.row}
+					onEndReached={onEndReached}
+					onEndReachedThreshold={0.3}
+					ListFooterComponent={
+						loadingMore ? <ActivityIndicator style={styles.footer} /> : null
+					}
 					refreshControl={
 						<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
 					}
@@ -165,4 +191,5 @@ const styles = StyleSheet.create({
 		marginBottom: 8,
 	},
 	emptySubText: { fontSize: 13, color: '#999' },
+	footer: { paddingVertical: 16 },
 });

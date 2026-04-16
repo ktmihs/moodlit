@@ -1,6 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Redirect, Tabs } from 'expo-router';
+import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
+import Animated, {
+	useAnimatedStyle,
+	useSharedValue,
+	withSpring,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -14,9 +20,24 @@ interface TabIconProps {
 }
 
 function TabIcon({ name, focused, color, size }: TabIconProps) {
+	const scale = useSharedValue(focused ? 1 : 0.85);
+
+	useEffect(() => {
+		scale.value = withSpring(focused ? 1 : 0.85, {
+			damping: 12,
+			stiffness: 180,
+		});
+	}, [focused, scale]);
+
+	const animatedStyle = useAnimatedStyle(() => ({
+		transform: [{ scale: scale.value }],
+	}));
+
 	return (
 		<View style={styles.iconWrapper}>
-			<Ionicons name={name} size={size} color={color} />
+			<Animated.View style={animatedStyle}>
+				<Ionicons name={name} size={size} color={color} />
+			</Animated.View>
 			{focused && <View style={[styles.dot, { backgroundColor: color }]} />}
 		</View>
 	);
