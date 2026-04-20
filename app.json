@@ -8,13 +8,18 @@
     "userInterfaceStyle": "automatic",
     "icon": "./assets/images/icon.png",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.ktmihs.moodlit",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.ktmihs.moodlit"
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -31,6 +36,13 @@
       ],
       "expo-secure-store",
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c3f6c487-5e41-4fba-8cd8-ba06ef85e094"
+      }
+    },
+    "owner": "ktmihs"
   }
 }
