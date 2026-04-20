@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { apiError, apiSuccess, ErrorCode } from '../lib/errors';
 import { validate } from '../lib/validate';
+import { getAdminClient } from '../middleware/auth';
 
 function normalizeGenre(genre: string | null | undefined): string {
 	if (!genre || genre.trim() === '') return '기타';
@@ -32,7 +33,8 @@ const patchBody = z
 		start_date: z
 			.string()
 			.regex(/^\d{4}-\d{2}-\d{2}$/, '날짜 형식은 YYYY-MM-DD여야 합니다.')
-			.optional(),
+			.optional()
+			.nullable(),
 		end_date: z
 			.string()
 			.regex(/^\d{4}-\d{2}-\d{2}$/, '날짜 형식은 YYYY-MM-DD여야 합니다.')
@@ -101,8 +103,10 @@ router.post('/', validate({ body: postBody }), async (req, res) => {
 
 	let bookId: string;
 
+	const admin = getAdminClient();
+
 	if (book.isbn) {
-		const { data: upserted, error: upsertErr } = await supabase
+		const { data: upserted, error: upsertErr } = await admin
 			.from('books')
 			.upsert(bookPayload, { onConflict: 'isbn' })
 			.select('id')
@@ -116,7 +120,7 @@ router.post('/', validate({ body: postBody }), async (req, res) => {
 			);
 		bookId = upserted.id;
 	} else {
-		const { data: inserted, error: insertErr } = await supabase
+		const { data: inserted, error: insertErr } = await admin
 			.from('books')
 			.insert(bookPayload)
 			.select('id')
