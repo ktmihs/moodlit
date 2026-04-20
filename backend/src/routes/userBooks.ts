@@ -14,7 +14,6 @@ const bookSchema = z.object({
 	title: z.string().min(1, '제목이 필요합니다.'),
 	author: z.string().optional(),
 	authors: z.array(z.string()).optional(),
-	thumbnail: z.string().optional().nullable(),
 	cover_image_url: z.string().optional().nullable(),
 	description: z.string().optional().nullable(),
 	genre: z.string().optional().nullable(),
@@ -57,7 +56,7 @@ router.get('/', async (req, res) => {
 	const { data, error } = await supabase
 		.from('user_books')
 		.select(
-			'id, rank, start_date, end_date, created_at, updated_at, books (id, isbn, title, authors, thumbnail, genre, summary)',
+			'id, rank, start_date, end_date, created_at, updated_at, books (id, isbn, title, author, cover_image_url, genre, description)',
 		)
 		.eq('user_id', user.id)
 		.order('rank', { ascending: true });
@@ -87,17 +86,15 @@ router.post('/', validate({ body: postBody }), async (req, res) => {
 	const { book, start_date } = req.body as z.infer<typeof postBody>;
 	const { supabase, user } = req.auth;
 
-	const authors: string[] = Array.isArray(book.authors)
-		? book.authors
-		: book.author
-			? book.author.split(', ').map((a: string) => a.trim())
-			: [];
+	const authorStr: string | null = Array.isArray(book.authors)
+		? book.authors.join(', ') || null
+		: (book.author ?? null);
 
 	const bookPayload = {
 		isbn: book.isbn ?? null,
 		title: book.title,
-		authors,
-		thumbnail: book.thumbnail ?? book.cover_image_url ?? null,
+		author: authorStr,
+		cover_image_url: book.cover_image_url ?? book.cover_image_url ?? null,
 		description: book.description ?? null,
 		genre: normalizeGenre(book.genre),
 	};
@@ -115,7 +112,7 @@ router.post('/', validate({ body: postBody }), async (req, res) => {
 			return void apiError(
 				res,
 				ErrorCode.INTERNAL_ERROR,
-				'책 저장에 실패했습니다.',
+				upsertErr?.message ?? '책 저장에 실패했습니다.',
 			);
 		bookId = upserted.id;
 	} else {
@@ -129,7 +126,7 @@ router.post('/', validate({ body: postBody }), async (req, res) => {
 			return void apiError(
 				res,
 				ErrorCode.INTERNAL_ERROR,
-				'책 저장에 실패했습니다.',
+				insertErr?.message ?? '책 저장에 실패했습니다.',
 			);
 		bookId = inserted.id;
 	}
@@ -203,7 +200,7 @@ router.patch('/:id', validate({ body: patchBody }), async (req, res) => {
 		.eq('id', req.params.id)
 		.eq('user_id', user.id)
 		.select(
-			'id, rank, start_date, end_date, updated_at, books (id, title, thumbnail)',
+			'id, rank, start_date, end_date, updated_at, books (id, title, cover_image_url)',
 		)
 		.single();
 

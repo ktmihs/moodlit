@@ -39,9 +39,9 @@ export function DragRow({ item, drag, isActive, onDelete }: Props) {
 					onLongPress={drag}
 				>
 					<View style={styles.thumb}>
-						{item.books.thumbnail ? (
+						{item.books.cover_image_url ? (
 							<Image
-								source={{ uri: item.books.thumbnail }}
+								source={{ uri: item.books.cover_image_url }}
 								style={styles.thumbImage}
 								contentFit="cover"
 							/>

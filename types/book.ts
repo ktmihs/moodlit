@@ -1,7 +1,7 @@
 export interface Book {
 	id: string;
 	title: string;
-	thumbnail: string | null;
+	cover_image_url: string | null;
 	genre: string | null;
 }
 

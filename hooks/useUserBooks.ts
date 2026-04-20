@@ -24,7 +24,7 @@ export function useUserBooks() {
 		const { data, error } = await supabase
 			.from('user_books')
 			.select(
-				'id, rank, start_date, end_date, books (id, title, thumbnail, genre)',
+				'id, rank, start_date, end_date, books (id, title, cover_image_url, genre)',
 			)
 			.order('rank', { ascending: true })
 			.range(from, to);
@@ -44,7 +44,7 @@ export function useUserBooks() {
 		const { data, error } = await supabase
 			.from('user_books')
 			.select(
-				'id, rank, start_date, end_date, books (id, title, thumbnail, genre)',
+				'id, rank, start_date, end_date, books (id, title, cover_image_url, genre)',
 			)
 			.order('rank', { ascending: true });
 
