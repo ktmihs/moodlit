@@ -14,7 +14,12 @@ import {
 	View,
 } from 'react-native';
 import { useBookDetail } from '../hooks/useBookDetail';
-import type { ReadingStatus, UserBook } from '../types/book';
+import type {
+	AiStatus,
+	ReadingStatus,
+	RecommendedBook,
+	UserBook,
+} from '../types/book';
 
 interface Props {
 	userBook: UserBook | null;
@@ -206,28 +211,108 @@ function SentencesTab({
 	);
 }
 
+// ── 추천 책 카드 ──
+function RecommendationCard({ item }: { item: RecommendedBook }) {
+	return (
+		<View style={recStyles.card}>
+			<View style={recStyles.thumb}>
+				{item.cover_image_url ? (
+					<Image
+						source={{ uri: item.cover_image_url }}
+						style={recStyles.thumbImg}
+						contentFit="cover"
+					/>
+				) : (
+					<View style={[recStyles.thumbImg, recStyles.thumbPlaceholder]} />
+				)}
+			</View>
+			<View style={recStyles.info}>
+				<Text style={recStyles.title} numberOfLines={2}>
+					{item.title}
+				</Text>
+				{item.author && (
+					<Text style={recStyles.author} numberOfLines={1}>
+						{item.author}
+					</Text>
+				)}
+			</View>
+		</View>
+	);
+}
+
+const recStyles = StyleSheet.create({
+	card: {
+		flexDirection: 'row',
+		gap: 12,
+		paddingVertical: 10,
+		borderBottomWidth: 1,
+		borderBottomColor: '#f5f5f5',
+	},
+	thumb: {
+		width: 44,
+		height: 62,
+		borderRadius: 4,
+		overflow: 'hidden',
+		backgroundColor: '#f0f0f0',
+	},
+	thumbImg: { width: '100%', height: '100%' },
+	thumbPlaceholder: { backgroundColor: '#e8e0d5' },
+	info: { flex: 1, justifyContent: 'center' },
+	title: { fontSize: 14, fontWeight: '600', color: '#1a1a1a', lineHeight: 20 },
+	author: { fontSize: 12, color: '#888', marginTop: 2 },
+});
+
 // ── 탭 3: 리뷰 ──
 function ReviewTab({
+	content,
 	rating,
 	memo,
+	aiStatus,
 	saving,
+	recommendations,
+	fetchingRecs,
+	hasMoreRecs,
+	hasContent,
+	onContentChange,
 	onRatingChange,
 	onMemoChange,
 	onSave,
+	onFetchRecommendations,
+	onLoadMore,
 }: {
+	content: string;
 	rating: number;
 	memo: string;
+	aiStatus: AiStatus;
 	saving: boolean;
+	recommendations: RecommendedBook[];
+	fetchingRecs: boolean;
+	hasMoreRecs: boolean;
+	hasContent: boolean;
+	onContentChange: (c: string) => void;
 	onRatingChange: (r: number) => void;
 	onMemoChange: (m: string) => void;
 	onSave: () => void;
+	onFetchRecommendations: () => void;
+	onLoadMore: () => void;
 }) {
 	return (
 		<ScrollView contentContainerStyle={styles.tabContent}>
 			<Text style={styles.sectionLabel}>별점</Text>
 			<StarRating value={rating} onChange={onRatingChange} />
 
-			<Text style={[styles.sectionLabel, { marginTop: 24 }]}>메모</Text>
+			<Text style={[styles.sectionLabel, { marginTop: 24 }]}>한줄 감상</Text>
+			<TextInput
+				style={styles.contentInput}
+				value={content}
+				onChangeText={onContentChange}
+				placeholder="책에 대한 감상을 한 문장으로 (AI 추천에 활용됩니다)"
+				placeholderTextColor="#bbb"
+				multiline
+				textAlignVertical="top"
+			/>
+
+			<Text style={[styles.sectionLabel, { marginTop: 16 }]}>메모</Text>
 			<TextInput
 				style={styles.memoInput}
 				value={memo}
@@ -249,6 +334,61 @@ function ReviewTab({
 					<Text style={styles.saveBtnText}>저장</Text>
 				)}
 			</Pressable>
+
+			{/* AI 추천 섹션 */}
+			{hasContent && (
+				<View style={styles.recSection}>
+					<View style={styles.recHeader}>
+						<Text style={styles.recTitle}>AI 추천 책</Text>
+					</View>
+
+					{recommendations.length === 0 ? (
+						<Pressable
+							style={[
+								styles.recBtn,
+								(fetchingRecs ||
+									aiStatus === 'pending' ||
+									aiStatus === 'processing') &&
+									styles.recBtnDisabled,
+							]}
+							onPress={onFetchRecommendations}
+							disabled={
+								fetchingRecs ||
+								aiStatus === 'pending' ||
+								aiStatus === 'processing'
+							}
+						>
+							{fetchingRecs ? (
+								<ActivityIndicator size="small" color="#1a1a1a" />
+							) : (
+								<Text style={styles.recBtnText}>추천 책 불러오기</Text>
+							)}
+						</Pressable>
+					) : (
+						<>
+							{recommendations.map((item, i) => (
+								<RecommendationCard
+									key={`${item.isbn ?? ''}-${i}`}
+									item={item}
+								/>
+							))}
+							{hasMoreRecs && (
+								<Pressable
+									style={styles.recBtn}
+									onPress={onLoadMore}
+									disabled={fetchingRecs}
+								>
+									{fetchingRecs ? (
+										<ActivityIndicator size="small" color="#1a1a1a" />
+									) : (
+										<Text style={styles.recBtnText}>더보기</Text>
+									)}
+								</Pressable>
+							)}
+						</>
+					)}
+				</View>
+			)}
 		</ScrollView>
 	);
 }
@@ -259,6 +399,7 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 	const [sentences, setSentences] = useState<string[]>([]);
 	const [rating, setRating] = useState(0);
 	const [memo, setMemo] = useState('');
+	const [content, setContent] = useState('');
 	const [startDate, setStartDate] = useState<string | null>(null);
 	const [endDate, setEndDate] = useState<string | null>(null);
 
@@ -268,9 +409,14 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 		saving,
 		status,
 		localBook,
+		recommendations,
+		fetchingRecs,
+		hasMoreRecs,
 		updateStatus,
 		saveDates,
 		saveReview,
+		fetchRecommendations,
+		loadMoreRecommendations,
 	} = useBookDetail(userBook);
 
 	// review 로드 시 로컬 상태 초기화
@@ -278,6 +424,7 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 		setSentences(review?.sentences ?? []);
 		setRating(review?.rating ?? 0);
 		setMemo(review?.memo ?? '');
+		setContent(review?.content ?? '');
 	}, [review]);
 
 	// localBook 변경 시 날짜 동기화
@@ -295,7 +442,7 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 		await updateStatus(s);
 	};
 
-	const handleSave = () => saveReview(rating || null, memo, sentences);
+	const handleSave = () => saveReview(rating || null, memo, sentences, content);
 
 	if (!userBook) return null;
 
@@ -387,12 +534,21 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 							)}
 							{activeTab === 2 && (
 								<ReviewTab
+									content={content}
 									rating={rating}
 									memo={memo}
+									aiStatus={review?.ai_status ?? null}
 									saving={saving}
+									recommendations={recommendations}
+									fetchingRecs={fetchingRecs}
+									hasMoreRecs={hasMoreRecs}
+									hasContent={!!review?.content}
+									onContentChange={setContent}
 									onRatingChange={setRating}
 									onMemoChange={setMemo}
 									onSave={handleSave}
+									onFetchRecommendations={fetchRecommendations}
+									onLoadMore={loadMoreRecommendations}
 								/>
 							)}
 						</>
@@ -403,7 +559,7 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 	);
 }
 
-const SHEET_HEIGHT = '75%';
+const SHEET_HEIGHT = '85%';
 
 const styles = StyleSheet.create({
 	overlay: { flex: 1, justifyContent: 'flex-end' },
@@ -557,6 +713,17 @@ const styles = StyleSheet.create({
 	},
 
 	// 리뷰 탭
+	contentInput: {
+		borderWidth: 1,
+		borderColor: '#e0e0e0',
+		borderRadius: 8,
+		paddingHorizontal: 14,
+		paddingVertical: 12,
+		fontSize: 14,
+		color: '#1a1a1a',
+		height: 80,
+		marginBottom: 4,
+	},
 	memoInput: {
 		borderWidth: 1,
 		borderColor: '#e0e0e0',
@@ -565,7 +732,7 @@ const styles = StyleSheet.create({
 		paddingVertical: 12,
 		fontSize: 14,
 		color: '#1a1a1a',
-		height: 120,
+		height: 100,
 		marginBottom: 24,
 	},
 	saveBtn: {
@@ -576,4 +743,38 @@ const styles = StyleSheet.create({
 	},
 	saveBtnDisabled: { backgroundColor: '#ccc' },
 	saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+
+	// AI 추천 섹션
+	recSection: {
+		marginTop: 28,
+		borderTopWidth: 1,
+		borderTopColor: '#f0f0f0',
+		paddingTop: 20,
+	},
+	recHeader: { marginBottom: 12 },
+	recTitle: {
+		fontSize: 15,
+		fontWeight: '700',
+		color: '#1a1a1a',
+		marginBottom: 8,
+	},
+	recBtn: {
+		borderWidth: 1,
+		borderColor: '#e0e0e0',
+		borderRadius: 8,
+		paddingVertical: 12,
+		alignItems: 'center',
+		marginTop: 8,
+	},
+	recBtnDisabled: { borderColor: '#e0e0e0', opacity: 0.4 },
+	recBtnText: { fontSize: 14, color: '#555', fontWeight: '500' },
+	recRefreshBtn: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 4,
+		marginTop: 12,
+		alignSelf: 'center',
+	},
+	recRefreshText: { fontSize: 12, color: '#888' },
+	recHint: { fontSize: 13, color: '#aaa', marginTop: 8, lineHeight: 20 },
 });

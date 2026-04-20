@@ -1,8 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Toast from 'react-native-toast-message';
 import { handleApiResponse, showApiError } from '../lib/apiError';
 import { supabase } from '../lib/supabase';
-import type { ReadingStatus, Review, UserBook } from '../types/book';
+import type {
+	ReadingStatus,
+	RecommendedBook,
+	Review,
+	UserBook,
+} from '../types/book';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
@@ -21,8 +26,22 @@ export function useBookDetail(userBook: UserBook | null) {
 	const [loading, setLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [localBook, setLocalBook] = useState<UserBook | null>(userBook);
+	const [recommendations, setRecommendations] = useState<RecommendedBook[]>([]);
+	const [fetchingRecs, setFetchingRecs] = useState(false);
+	const [recsPage, setRecsPage] = useState(1);
+	const [hasMoreRecs, setHasMoreRecs] = useState(false);
+	const lastBookIdRef = useRef<string | null>(null);
 
 	useEffect(() => {
+		const newId = userBook?.id ?? null;
+		// 다른 책으로 바뀔 때만 초기화 (닫기→같은책 재열기는 유지)
+		if (newId !== null && newId !== lastBookIdRef.current) {
+			setRecommendations([]);
+			setRecsPage(1);
+			setHasMoreRecs(false);
+		}
+		if (newId !== null) lastBookIdRef.current = newId;
+
 		setLocalBook(userBook);
 		if (!userBook) {
 			setReview(null);
@@ -97,7 +116,12 @@ export function useBookDetail(userBook: UserBook | null) {
 	);
 
 	const saveReview = useCallback(
-		async (rating: number | null, memo: string, sentences: string[]) => {
+		async (
+			rating: number | null,
+			memo: string,
+			sentences: string[],
+			content: string,
+		) => {
 			if (!localBook) return;
 			setSaving(true);
 			try {
@@ -107,6 +131,7 @@ export function useBookDetail(userBook: UserBook | null) {
 
 				const body = {
 					user_book_id: localBook.id,
+					content: content.trim() || null,
 					rating: rating || null,
 					memo: memo.trim() || null,
 					sentences,
@@ -131,6 +156,8 @@ export function useBookDetail(userBook: UserBook | null) {
 				await handleApiResponse(res);
 				const saved: Review = await res.json();
 				setReview({ ...saved, sentences: (saved.sentences as string[]) ?? [] });
+				setRecommendations([]);
+				setRecsPage(1);
 				Toast.show({ type: 'success', text1: '저장했습니다.' });
 			} catch (err) {
 				showApiError(err);
@@ -141,14 +168,66 @@ export function useBookDetail(userBook: UserBook | null) {
 		[localBook, review],
 	);
 
+	const fetchRecommendations = useCallback(async () => {
+		if (!review?.id) return;
+		setFetchingRecs(true);
+		setRecsPage(1);
+		try {
+			const {
+				data: { session },
+			} = await supabase.auth.getSession();
+			const res = await fetch(
+				`${API_BASE}/reviews/${review.id}/recommendations?page=1`,
+				{ headers: { Authorization: `Bearer ${session?.access_token}` } },
+			);
+			await handleApiResponse(res);
+			const json = await res.json();
+			setRecommendations(json.recommendations ?? []);
+			setHasMoreRecs(json.has_more ?? false);
+		} catch (err) {
+			showApiError(err);
+		} finally {
+			setFetchingRecs(false);
+		}
+	}, [review?.id]);
+
+	const loadMoreRecommendations = useCallback(async () => {
+		if (!review?.id) return;
+		const nextPage = recsPage + 1;
+		setFetchingRecs(true);
+		try {
+			const {
+				data: { session },
+			} = await supabase.auth.getSession();
+			const res = await fetch(
+				`${API_BASE}/reviews/${review.id}/recommendations?page=${nextPage}`,
+				{ headers: { Authorization: `Bearer ${session?.access_token}` } },
+			);
+			await handleApiResponse(res);
+			const json = await res.json();
+			setRecommendations(prev => [...prev, ...(json.recommendations ?? [])]);
+			setHasMoreRecs(json.has_more ?? false);
+			setRecsPage(nextPage);
+		} catch (err) {
+			showApiError(err);
+		} finally {
+			setFetchingRecs(false);
+		}
+	}, [review?.id, recsPage]);
+
 	return {
 		review,
 		loading,
 		saving,
 		status,
 		localBook,
+		recommendations,
+		fetchingRecs,
+		hasMoreRecs,
 		updateStatus,
 		saveDates,
 		saveReview,
+		fetchRecommendations,
+		loadMoreRecommendations,
 	};
 }
