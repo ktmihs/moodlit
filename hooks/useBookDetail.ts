@@ -44,7 +44,7 @@ export function useBookDetail(userBook: UserBook | null) {
 	const status = localBook ? deriveStatus(localBook) : 'want';
 
 	const updateStatus = useCallback(
-		async (newStatus: ReadingStatus) => {
+		(newStatus: ReadingStatus) => {
 			if (!localBook) return;
 
 			let start_date = localBook.start_date;
@@ -62,13 +62,36 @@ export function useBookDetail(userBook: UserBook | null) {
 			}
 
 			setLocalBook(prev => (prev ? { ...prev, start_date, end_date } : prev));
+		},
+		[localBook],
+	);
 
-			// database.types.ts가 실제 스키마와 일부 불일치하여 any 캐스팅
-
-			await (supabase as any)
-				.from('user_books')
-				.update({ start_date, end_date })
-				.eq('id', localBook.id);
+	const saveDates = useCallback(
+		async (startDate: string | null, endDate: string | null) => {
+			if (!localBook) return;
+			setSaving(true);
+			try {
+				const {
+					data: { session },
+				} = await supabase.auth.getSession();
+				const res = await fetch(`${API_BASE}/user-books/${localBook.id}`, {
+					method: 'PATCH',
+					headers: {
+						Authorization: `Bearer ${session?.access_token}`,
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({ start_date: startDate, end_date: endDate }),
+				});
+				await handleApiResponse(res);
+				setLocalBook(prev =>
+					prev ? { ...prev, start_date: startDate, end_date: endDate } : prev,
+				);
+				Toast.show({ type: 'success', text1: '저장했습니다.' });
+			} catch (err) {
+				showApiError(err);
+			} finally {
+				setSaving(false);
+			}
 		},
 		[localBook],
 	);
@@ -125,6 +148,7 @@ export function useBookDetail(userBook: UserBook | null) {
 		status,
 		localBook,
 		updateStatus,
+		saveDates,
 		saveReview,
 	};
 }

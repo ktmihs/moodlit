@@ -62,16 +62,20 @@ function StatusTab({
 	status,
 	startDate,
 	endDate,
+	saving,
 	onStatusChange,
 	onStartChange,
 	onEndChange,
+	onSave,
 }: {
 	status: ReadingStatus;
 	startDate: string | null;
 	endDate: string | null;
+	saving: boolean;
 	onStatusChange: (s: ReadingStatus) => void;
 	onStartChange: (d: string) => void;
 	onEndChange: (d: string) => void;
+	onSave: () => void;
 }) {
 	return (
 		<ScrollView contentContainerStyle={styles.tabContent}>
@@ -122,6 +126,18 @@ function StatusTab({
 					/>
 				</>
 			)}
+
+			<Pressable
+				style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+				onPress={onSave}
+				disabled={saving}
+			>
+				{saving ? (
+					<ActivityIndicator color="#fff" size="small" />
+				) : (
+					<Text style={styles.saveBtnText}>저장</Text>
+				)}
+			</Pressable>
 		</ScrollView>
 	);
 }
@@ -253,6 +269,7 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 		status,
 		localBook,
 		updateStatus,
+		saveDates,
 		saveReview,
 	} = useBookDetail(userBook);
 
@@ -358,9 +375,11 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 									status={status}
 									startDate={startDate}
 									endDate={endDate}
+									saving={saving}
 									onStatusChange={handleStatusChange}
 									onStartChange={setStartDate}
 									onEndChange={setEndDate}
+									onSave={() => saveDates(startDate, endDate)}
 								/>
 							)}
 							{activeTab === 1 && (
