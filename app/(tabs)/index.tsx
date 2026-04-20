@@ -1,3 +1,4 @@
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
 	ActivityIndicator,
@@ -35,6 +36,12 @@ export default function HomeScreen() {
 		handleDragEnd,
 		deleteBook,
 	} = useUserBooks();
+
+	useFocusEffect(
+		useCallback(() => {
+			onRefresh();
+		}, [onRefresh]),
+	);
 
 	const toggleEditMode = useCallback(async () => {
 		if (!editMode) await fetchAll();
