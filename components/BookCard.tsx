@@ -1,18 +1,19 @@
 import { Image } from 'expo-image';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { UserBook } from '../types/book';
 
 interface Props {
 	item: UserBook;
+	onPress?: () => void;
 }
 
-export function BookCard({ item }: Props) {
+export function BookCard({ item, onPress }: Props) {
 	return (
-		<View style={styles.card}>
+		<Pressable style={styles.card} onPress={onPress}>
 			<View style={styles.coverWrapper}>
-				{item.books.thumbnail ? (
+				{item.books.cover_image_url ? (
 					<Image
-						source={{ uri: item.books.thumbnail }}
+						source={{ uri: item.books.cover_image_url }}
 						style={styles.cover}
 						contentFit="cover"
 						transition={200}
@@ -28,7 +29,7 @@ export function BookCard({ item }: Props) {
 			<Text style={styles.bookTitle} numberOfLines={2}>
 				{item.books.title}
 			</Text>
-		</View>
+		</Pressable>
 	);
 }
 
