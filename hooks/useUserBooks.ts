@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { DragEndParams } from 'react-native-draggable-flatlist';
 import Toast from 'react-native-toast-message';
 import { showApiError } from '../lib/apiError';
 import { supabase } from '../lib/supabase';
 import type { UserBook } from '../types/book';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.47.16.123:3000';
 const PAGE_SIZE = 21; // 3의 배수 (열 맞춤)
 
 export function useUserBooks() {
@@ -75,7 +74,7 @@ export function useUserBooks() {
 	);
 
 	const handleDragEnd = useCallback(
-		async ({ data }: DragEndParams<UserBook>) => {
+		async (data: UserBook[]) => {
 			const prev = userBooks;
 			prevBooksRef.current = prev;
 			setUserBooks(data);
@@ -90,7 +89,7 @@ export function useUserBooks() {
 						Authorization: `Bearer ${session?.access_token}`,
 						'Content-Type': 'application/json',
 					},
-					body: JSON.stringify({ ids: data.map(b => b.id) }),
+					body: JSON.stringify({ ids: data.map((b: UserBook) => b.id) }),
 				});
 
 				if (!res.ok) {

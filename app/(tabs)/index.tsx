@@ -9,16 +9,12 @@ import {
 	Text,
 	View,
 } from 'react-native';
-import DraggableFlatList from 'react-native-draggable-flatlist';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BookCard } from '../../components/BookCard';
 import { BookDetailModal } from '../../components/BookDetailModal';
-import { DragRow } from '../../components/DragRow';
+import { DraggableGrid } from '../../components/DraggableGrid';
 import { useUserBooks } from '../../hooks/useUserBooks';
 import type { UserBook } from '../../types/book';
-
-const NUM_COLUMNS = 3;
 
 export default function HomeScreen() {
 	const insets = useSafeAreaInsets();
@@ -77,24 +73,19 @@ export default function HomeScreen() {
 							검색 탭에서 책을 찾아 담아보세요
 						</Text>
 					</View>
-				) : editMode ? (
-					<DraggableFlatList
-						data={userBooks}
-						keyExtractor={item => item.id}
-						renderItem={params => <DragRow {...params} onDelete={deleteBook} />}
-						onDragEnd={handleDragEnd}
-						contentContainerStyle={styles.dragList}
-					/>
 				) : (
 					<FlatList
-						data={userBooks}
-						keyExtractor={item => item.id}
-						numColumns={NUM_COLUMNS}
-						renderItem={({ item }) => (
-							<BookCard item={item} onPress={() => setSelectedBook(item)} />
+						data={[{ key: 'grid' }]}
+						keyExtractor={i => i.key}
+						renderItem={() => (
+							<DraggableGrid
+								data={userBooks}
+								editMode={editMode}
+								onReorder={handleDragEnd}
+								onDelete={deleteBook}
+								onPress={item => setSelectedBook(item)}
+							/>
 						)}
-						contentContainerStyle={styles.grid}
-						columnWrapperStyle={styles.row}
 						onEndReached={() => onEndReached(editMode)}
 						onEndReachedThreshold={0.3}
 						ListFooterComponent={
@@ -142,5 +133,4 @@ const styles = StyleSheet.create({
 	},
 	emptySubText: { fontSize: 13, color: '#999' },
 	footer: { paddingVertical: 16 },
-	dragList: { paddingVertical: 8 },
 });
