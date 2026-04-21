@@ -71,7 +71,7 @@ const cardStyles = StyleSheet.create({
 
 // ── 캘린더 스크린 ──
 export default function CalendarScreen() {
-	const { data, loading, currentMonth, fetchMonth, getEventsForDate } =
+	const { loading, currentMonth, periodMarks, fetchMonth, getEventsForDate } =
 		useCalendar();
 	const [selectedDate, setSelectedDate] = useState<string>('');
 
@@ -86,17 +86,17 @@ export default function CalendarScreen() {
 
 	const selectedEvents = selectedDate ? getEventsForDate(selectedDate) : [];
 
-	// 선택된 날짜에 selected 마커 추가
+	// 선택된 날짜에 selected 오버레이 추가
 	const markedDates = selectedDate
 		? {
-				...data.marked_dates,
+				...periodMarks,
 				[selectedDate]: {
-					...(data.marked_dates[selectedDate] ?? {}),
+					...(periodMarks[selectedDate] ?? { periods: [] }),
 					selected: true,
-					selectedColor: '#1a1a1a',
+					selectedColor: 'rgba(0,0,0,0.12)',
 				},
 			}
-		: data.marked_dates;
+		: periodMarks;
 
 	return (
 		<View style={styles.container}>
@@ -105,7 +105,7 @@ export default function CalendarScreen() {
 			</View>
 
 			<Calendar
-				markingType="multi-dot"
+				markingType="multi-period"
 				markedDates={markedDates}
 				onDayPress={day => setSelectedDate(day.dateString)}
 				onMonthChange={handleMonthChange}
