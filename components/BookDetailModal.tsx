@@ -18,7 +18,6 @@ import type {
 	AiStatus,
 	ReadingStatus,
 	RecommendedBook,
-	SummaryState,
 	UserBook,
 } from '../types/book';
 
@@ -74,18 +73,16 @@ function StatusTab({
 	onStartChange,
 	onEndChange,
 	onSave,
-	onFetchSummary,
 }: {
 	status: ReadingStatus;
 	startDate: string | null;
 	endDate: string | null;
 	saving: boolean;
-	summary: SummaryState;
+	summary: string | null;
 	onStatusChange: (s: ReadingStatus) => void;
 	onStartChange: (d: string) => void;
 	onEndChange: (d: string) => void;
 	onSave: () => void;
-	onFetchSummary: () => void;
 }) {
 	return (
 		<ScrollView contentContainerStyle={styles.tabContent}>
@@ -150,28 +147,12 @@ function StatusTab({
 			</Pressable>
 
 			{/* AI 책 요약 섹션 */}
-			<View style={styles.summarySection}>
-				<Text style={styles.sectionLabel}>AI 책 요약</Text>
-				{summary.status === 'idle' && (
-					<Pressable style={styles.recBtn} onPress={onFetchSummary}>
-						<Text style={styles.recBtnText}>요약 불러오기</Text>
-					</Pressable>
-				)}
-				{summary.status === 'loading' && (
-					<View style={styles.summaryLoading}>
-						<ActivityIndicator size="small" color="#888" />
-						<Text style={styles.summaryLoadingText}>요약 생성 중...</Text>
-					</View>
-				)}
-				{summary.status === 'done' && (
-					<Text style={styles.summaryText}>{summary.text}</Text>
-				)}
-				{summary.status === 'error' && (
-					<Pressable style={styles.recBtn} onPress={onFetchSummary}>
-						<Text style={styles.recBtnText}>다시 시도</Text>
-					</Pressable>
-				)}
-			</View>
+			{summary && (
+				<View style={styles.summarySection}>
+					<Text style={styles.sectionLabel}>AI 책 요약</Text>
+					<Text style={styles.summaryText}>{summary}</Text>
+				</View>
+			)}
 		</ScrollView>
 	);
 }
@@ -438,14 +419,12 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 		saving,
 		status,
 		localBook,
-		summary,
 		recommendations,
 		fetchingRecs,
 		hasMoreRecs,
 		updateStatus,
 		saveDates,
 		saveReview,
-		fetchSummary,
 		fetchRecommendations,
 		loadMoreRecommendations,
 	} = useBookDetail(userBook);
@@ -554,12 +533,11 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 									startDate={startDate}
 									endDate={endDate}
 									saving={saving}
-									summary={summary}
+									summary={localBook?.books.summary ?? null}
 									onStatusChange={handleStatusChange}
 									onStartChange={setStartDate}
 									onEndChange={setEndDate}
 									onSave={() => saveDates(startDate, endDate)}
-									onFetchSummary={fetchSummary}
 								/>
 							)}
 							{activeTab === 1 && (

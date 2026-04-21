@@ -6,7 +6,6 @@ import type {
 	ReadingStatus,
 	RecommendedBook,
 	Review,
-	SummaryState,
 	UserBook,
 } from '../types/book';
 
@@ -31,17 +30,14 @@ export function useBookDetail(userBook: UserBook | null) {
 	const [fetchingRecs, setFetchingRecs] = useState(false);
 	const [recsPage, setRecsPage] = useState(1);
 	const [hasMoreRecs, setHasMoreRecs] = useState(false);
-	const [summary, setSummary] = useState<SummaryState>({ status: 'idle' });
 	const lastBookIdRef = useRef<string | null>(null);
 
 	useEffect(() => {
 		const newId = userBook?.id ?? null;
-		// 다른 책으로 바뀔 때만 초기화 (닫기→같은책 재열기는 유지)
 		if (newId !== null && newId !== lastBookIdRef.current) {
 			setRecommendations([]);
 			setRecsPage(1);
 			setHasMoreRecs(false);
-			setSummary({ status: 'idle' });
 		}
 		if (newId !== null) lastBookIdRef.current = newId;
 
@@ -51,16 +47,27 @@ export function useBookDetail(userBook: UserBook | null) {
 			return;
 		}
 		setLoading(true);
-		supabase
-			.from('reviews')
-			.select('*')
-			.eq('user_book_id', userBook.id)
-			.maybeSingle()
-			.then(({ data }) => {
-				const raw = data as unknown as Review | null;
-				setReview(raw ? { ...raw, sentences: raw.sentences ?? [] } : null);
-				setLoading(false);
-			});
+
+		// 리뷰 로드 + 최신 book 데이터(summary 포함) 동시 fetch
+		Promise.all([
+			supabase
+				.from('reviews')
+				.select('*')
+				.eq('user_book_id', userBook.id)
+				.maybeSingle(),
+			supabase.auth.getSession().then(({ data: { session } }) =>
+				fetch(`${API_BASE}/user-books/${userBook.id}`, {
+					headers: { Authorization: `Bearer ${session?.access_token}` },
+				}).then(r => (r.ok ? r.json() : null)),
+			),
+		]).then(([{ data }, freshBook]) => {
+			const raw = data as unknown as Review | null;
+			setReview(raw ? { ...raw, sentences: raw.sentences ?? [] } : null);
+			if (freshBook?.books) {
+				setLocalBook(prev => prev ? { ...prev, books: freshBook.books } : prev);
+			}
+			setLoading(false);
+		});
 	}, [userBook?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const status = localBook ? deriveStatus(localBook) : 'want';
@@ -171,27 +178,6 @@ export function useBookDetail(userBook: UserBook | null) {
 		[localBook, review],
 	);
 
-	const fetchSummary = useCallback(async () => {
-		if (!localBook?.books.id) return;
-		setSummary({ status: 'loading' });
-		try {
-			const {
-				data: { session },
-			} = await supabase.auth.getSession();
-			const res = await fetch(
-				`${API_BASE}/books/${localBook.books.id}/summary`,
-				{
-					headers: { Authorization: `Bearer ${session?.access_token}` },
-				},
-			);
-			await handleApiResponse(res);
-			const json = await res.json();
-			setSummary({ status: 'done', text: json.summary ?? '' });
-		} catch {
-			setSummary({ status: 'error' });
-		}
-	}, [localBook?.books.id]);
-
 	const fetchRecommendations = useCallback(async () => {
 		if (!review?.id) return;
 		setFetchingRecs(true);
@@ -245,14 +231,12 @@ export function useBookDetail(userBook: UserBook | null) {
 		saving,
 		status,
 		localBook,
-		summary,
 		recommendations,
 		fetchingRecs,
 		hasMoreRecs,
 		updateStatus,
 		saveDates,
 		saveReview,
-		fetchSummary,
 		fetchRecommendations,
 		loadMoreRecommendations,
 	};

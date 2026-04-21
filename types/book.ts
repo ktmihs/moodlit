@@ -4,6 +4,7 @@ export interface Book {
 	author: string | null;
 	cover_image_url: string | null;
 	genre: string | null;
+	summary: string | null;
 }
 
 export interface UserBook {
@@ -51,9 +52,3 @@ export interface CalendarData {
 	events: CalendarEvent[];
 	marked_dates: Record<string, { dots: { key: string; color: string }[] }>;
 }
-
-export type SummaryState =
-	| { status: 'idle' }
-	| { status: 'loading' }
-	| { status: 'done'; text: string }
-	| { status: 'error' };
