@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { apiError, apiSuccess, ErrorCode } from '../lib/errors';
+import { generateSummaryIfNeeded } from '../lib/summary';
 import { validate } from '../lib/validate';
 import { getAdminClient } from '../middleware/auth';
 
@@ -58,7 +59,7 @@ router.get('/', async (req, res) => {
 	const { data, error } = await supabase
 		.from('user_books')
 		.select(
-			'id, rank, start_date, end_date, created_at, updated_at, books (id, isbn, title, author, cover_image_url, genre, description)',
+			'id, rank, start_date, end_date, created_at, updated_at, books (id, isbn, title, author, cover_image_url, genre, description, summary)',
 		)
 		.eq('user_id', user.id)
 		.order('rank', { ascending: true });
@@ -169,6 +170,11 @@ router.post('/', validate({ body: postBody }), async (req, res) => {
 	}
 
 	apiSuccess(res, data, 201);
+
+	// 책 저장 후 요약 백그라운드 생성 (fire-and-forget)
+	generateSummaryIfNeeded(bookId).catch(err =>
+		console.error('[summary] 자동 생성 실패:', err),
+	);
 });
 
 // ── PUT /user-books/rank ── 순위 일괄 변경

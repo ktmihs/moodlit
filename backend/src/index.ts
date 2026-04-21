@@ -4,6 +4,7 @@ import express from 'express';
 import { rateLimit } from 'express-rate-limit';
 import helmet from 'helmet';
 import cron from 'node-cron';
+import { runBookSummaryWorker } from './lib/summary';
 import { runAiWorker } from './lib/worker';
 import { requireAuth } from './middleware/auth';
 import { errorHandler } from './middleware/errorHandler';
@@ -39,16 +40,38 @@ app.use(
 );
 app.use(express.json());
 
-// AI Worker 수동 실행 (requireAuth 없음, worker secret key로 보호)
-app.post('/ai-worker/run', async (req, res) => {
+function workerAuth(
+	req: import('express').Request,
+	res: import('express').Response,
+): boolean {
 	const key = req.headers['x-worker-key'];
 	if (!key || key !== process.env.WORKER_SECRET_KEY) {
-		return void res
+		res
 			.status(403)
 			.json({ error: { code: 'FORBIDDEN', message: '접근 권한이 없습니다.' } });
+		return false;
 	}
+	return true;
+}
+
+// AI Worker 수동 실행
+app.post('/ai-worker/run', async (req, res) => {
+	if (!workerAuth(req, res)) return;
 	try {
 		const result = await runAiWorker();
+		res.json({ success: true, ...result });
+	} catch (err) {
+		res
+			.status(500)
+			.json({ error: { code: 'INTERNAL_ERROR', message: String(err) } });
+	}
+});
+
+// 기존 책 요약 일괄 생성
+app.post('/ai-worker/run-book-summary', async (req, res) => {
+	if (!workerAuth(req, res)) return;
+	try {
+		const result = await runBookSummaryWorker();
 		res.json({ success: true, ...result });
 	} catch (err) {
 		res
