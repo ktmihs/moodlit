@@ -18,6 +18,7 @@ import type {
 	AiStatus,
 	ReadingStatus,
 	RecommendedBook,
+	SummaryState,
 	UserBook,
 } from '../types/book';
 
@@ -68,19 +69,23 @@ function StatusTab({
 	startDate,
 	endDate,
 	saving,
+	summary,
 	onStatusChange,
 	onStartChange,
 	onEndChange,
 	onSave,
+	onFetchSummary,
 }: {
 	status: ReadingStatus;
 	startDate: string | null;
 	endDate: string | null;
 	saving: boolean;
+	summary: SummaryState;
 	onStatusChange: (s: ReadingStatus) => void;
 	onStartChange: (d: string) => void;
 	onEndChange: (d: string) => void;
 	onSave: () => void;
+	onFetchSummary: () => void;
 }) {
 	return (
 		<ScrollView contentContainerStyle={styles.tabContent}>
@@ -143,6 +148,30 @@ function StatusTab({
 					<Text style={styles.saveBtnText}>저장</Text>
 				)}
 			</Pressable>
+
+			{/* AI 책 요약 섹션 */}
+			<View style={styles.summarySection}>
+				<Text style={styles.sectionLabel}>AI 책 요약</Text>
+				{summary.status === 'idle' && (
+					<Pressable style={styles.recBtn} onPress={onFetchSummary}>
+						<Text style={styles.recBtnText}>요약 불러오기</Text>
+					</Pressable>
+				)}
+				{summary.status === 'loading' && (
+					<View style={styles.summaryLoading}>
+						<ActivityIndicator size="small" color="#888" />
+						<Text style={styles.summaryLoadingText}>요약 생성 중...</Text>
+					</View>
+				)}
+				{summary.status === 'done' && (
+					<Text style={styles.summaryText}>{summary.text}</Text>
+				)}
+				{summary.status === 'error' && (
+					<Pressable style={styles.recBtn} onPress={onFetchSummary}>
+						<Text style={styles.recBtnText}>다시 시도</Text>
+					</Pressable>
+				)}
+			</View>
 		</ScrollView>
 	);
 }
@@ -409,12 +438,14 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 		saving,
 		status,
 		localBook,
+		summary,
 		recommendations,
 		fetchingRecs,
 		hasMoreRecs,
 		updateStatus,
 		saveDates,
 		saveReview,
+		fetchSummary,
 		fetchRecommendations,
 		loadMoreRecommendations,
 	} = useBookDetail(userBook);
@@ -523,10 +554,12 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 									startDate={startDate}
 									endDate={endDate}
 									saving={saving}
+									summary={summary}
 									onStatusChange={handleStatusChange}
 									onStartChange={setStartDate}
 									onEndChange={setEndDate}
 									onSave={() => saveDates(startDate, endDate)}
+									onFetchSummary={fetchSummary}
 								/>
 							)}
 							{activeTab === 1 && (
@@ -777,4 +810,28 @@ const styles = StyleSheet.create({
 	},
 	recRefreshText: { fontSize: 12, color: '#888' },
 	recHint: { fontSize: 13, color: '#aaa', marginTop: 8, lineHeight: 20 },
+
+	// AI 요약 섹션
+	summarySection: {
+		marginTop: 28,
+		borderTopWidth: 1,
+		borderTopColor: '#f0f0f0',
+		paddingTop: 20,
+	},
+	summaryLoading: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+		marginTop: 8,
+	},
+	summaryLoadingText: { fontSize: 13, color: '#888' },
+	summaryText: {
+		fontSize: 14,
+		color: '#333',
+		lineHeight: 22,
+		marginTop: 8,
+		backgroundColor: '#f8f8f8',
+		borderRadius: 8,
+		padding: 14,
+	},
 });

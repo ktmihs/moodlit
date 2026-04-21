@@ -6,6 +6,7 @@ import type {
 	ReadingStatus,
 	RecommendedBook,
 	Review,
+	SummaryState,
 	UserBook,
 } from '../types/book';
 
@@ -30,6 +31,7 @@ export function useBookDetail(userBook: UserBook | null) {
 	const [fetchingRecs, setFetchingRecs] = useState(false);
 	const [recsPage, setRecsPage] = useState(1);
 	const [hasMoreRecs, setHasMoreRecs] = useState(false);
+	const [summary, setSummary] = useState<SummaryState>({ status: 'idle' });
 	const lastBookIdRef = useRef<string | null>(null);
 
 	useEffect(() => {
@@ -39,6 +41,7 @@ export function useBookDetail(userBook: UserBook | null) {
 			setRecommendations([]);
 			setRecsPage(1);
 			setHasMoreRecs(false);
+			setSummary({ status: 'idle' });
 		}
 		if (newId !== null) lastBookIdRef.current = newId;
 
@@ -168,6 +171,27 @@ export function useBookDetail(userBook: UserBook | null) {
 		[localBook, review],
 	);
 
+	const fetchSummary = useCallback(async () => {
+		if (!localBook?.books.id) return;
+		setSummary({ status: 'loading' });
+		try {
+			const {
+				data: { session },
+			} = await supabase.auth.getSession();
+			const res = await fetch(
+				`${API_BASE}/books/${localBook.books.id}/summary`,
+				{
+					headers: { Authorization: `Bearer ${session?.access_token}` },
+				},
+			);
+			await handleApiResponse(res);
+			const json = await res.json();
+			setSummary({ status: 'done', text: json.summary ?? '' });
+		} catch {
+			setSummary({ status: 'error' });
+		}
+	}, [localBook?.books.id]);
+
 	const fetchRecommendations = useCallback(async () => {
 		if (!review?.id) return;
 		setFetchingRecs(true);
@@ -221,12 +245,14 @@ export function useBookDetail(userBook: UserBook | null) {
 		saving,
 		status,
 		localBook,
+		summary,
 		recommendations,
 		fetchingRecs,
 		hasMoreRecs,
 		updateStatus,
 		saveDates,
 		saveReview,
+		fetchSummary,
 		fetchRecommendations,
 		loadMoreRecommendations,
 	};

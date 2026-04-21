@@ -34,3 +34,9 @@ export interface RecommendedBook {
 	author: string | null;
 	cover_image_url: string | null;
 }
+
+export type SummaryState =
+	| { status: 'idle' }
+	| { status: 'loading' }
+	| { status: 'done'; text: string }
+	| { status: 'error' };
