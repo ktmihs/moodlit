@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { apiError, apiSuccess, ErrorCode } from '../lib/errors.js';
-import { getAdminClient } from '../middleware/auth.js';
+import { apiError, apiSuccess, ErrorCode } from '../lib/errors';
+import { getAdminClient } from '../middleware/auth';
 
 const router = Router();
 

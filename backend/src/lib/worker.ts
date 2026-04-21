@@ -1,4 +1,4 @@
-import { getAdminClient } from '../middleware/auth.js';
+import { getAdminClient } from '../middleware/auth';
 
 const MAX_BATCH = 10;
 

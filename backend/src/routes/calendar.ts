@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { apiSuccess } from '../lib/errors.js';
+import { apiSuccess } from '../lib/errors';
 
 const router = Router();
 
