@@ -94,6 +94,20 @@ export default function TabLayout() {
 				}}
 			/>
 			<Tabs.Screen
+				name="calendar"
+				options={{
+					title: '달력',
+					tabBarIcon: ({ focused, color, size }) => (
+						<TabIcon
+							name={focused ? 'calendar' : 'calendar-outline'}
+							focused={focused}
+							color={color}
+							size={size}
+						/>
+					),
+				}}
+			/>
+			<Tabs.Screen
 				name="mypage"
 				options={{
 					title: '마이페이지',

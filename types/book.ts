@@ -35,6 +35,23 @@ export interface RecommendedBook {
 	cover_image_url: string | null;
 }
 
+export interface CalendarEvent {
+	user_book_id: string;
+	book: {
+		id: string;
+		title: string;
+		author: string | null;
+		cover_image_url: string | null;
+	};
+	start_date: string;
+	end_date: string | null;
+}
+
+export interface CalendarData {
+	events: CalendarEvent[];
+	marked_dates: Record<string, { dots: { key: string; color: string }[] }>;
+}
+
 export type SummaryState =
 	| { status: 'idle' }
 	| { status: 'loading' }
