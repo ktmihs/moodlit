@@ -245,6 +245,11 @@ function RecommendationCard({ item }: { item: RecommendedBook }) {
 						{item.author}
 					</Text>
 				)}
+				{item.reason && (
+					<Text style={recStyles.reason} numberOfLines={1}>
+						{item.reason}
+					</Text>
+				)}
 			</View>
 		</View>
 	);
@@ -270,6 +275,7 @@ const recStyles = StyleSheet.create({
 	info: { flex: 1, justifyContent: 'center' },
 	title: { fontSize: 14, fontWeight: '600', color: '#1a1a1a', lineHeight: 20 },
 	author: { fontSize: 12, color: '#888', marginTop: 2 },
+	reason: { fontSize: 11, color: '#4D96FF', marginTop: 3 },
 });
 
 // ── 탭 3: 리뷰 ──
@@ -281,14 +287,12 @@ function ReviewTab({
 	saving,
 	recommendations,
 	fetchingRecs,
-	hasMoreRecs,
 	hasContent,
 	onContentChange,
 	onRatingChange,
 	onMemoChange,
 	onSave,
 	onFetchRecommendations,
-	onLoadMore,
 }: {
 	content: string;
 	rating: number;
@@ -297,14 +301,12 @@ function ReviewTab({
 	saving: boolean;
 	recommendations: RecommendedBook[];
 	fetchingRecs: boolean;
-	hasMoreRecs: boolean;
 	hasContent: boolean;
 	onContentChange: (c: string) => void;
 	onRatingChange: (r: number) => void;
 	onMemoChange: (m: string) => void;
 	onSave: () => void;
 	onFetchRecommendations: () => void;
-	onLoadMore: () => void;
 }) {
 	return (
 		<ScrollView contentContainerStyle={styles.tabContent}>
@@ -382,19 +384,6 @@ function ReviewTab({
 									item={item}
 								/>
 							))}
-							{hasMoreRecs && (
-								<Pressable
-									style={styles.recBtn}
-									onPress={onLoadMore}
-									disabled={fetchingRecs}
-								>
-									{fetchingRecs ? (
-										<ActivityIndicator size="small" color="#1a1a1a" />
-									) : (
-										<Text style={styles.recBtnText}>더보기</Text>
-									)}
-								</Pressable>
-							)}
 						</>
 					)}
 				</View>
@@ -421,12 +410,10 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 		localBook,
 		recommendations,
 		fetchingRecs,
-		hasMoreRecs,
 		updateStatus,
 		saveDates,
 		saveReview,
 		fetchRecommendations,
-		loadMoreRecommendations,
 	} = useBookDetail(userBook);
 
 	// review 로드 시 로컬 상태 초기화
@@ -552,14 +539,12 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 									saving={saving}
 									recommendations={recommendations}
 									fetchingRecs={fetchingRecs}
-									hasMoreRecs={hasMoreRecs}
 									hasContent={!!review?.content}
 									onContentChange={setContent}
 									onRatingChange={setRating}
 									onMemoChange={setMemo}
 									onSave={handleSave}
 									onFetchRecommendations={fetchRecommendations}
-									onLoadMore={loadMoreRecommendations}
 								/>
 							)}
 						</>

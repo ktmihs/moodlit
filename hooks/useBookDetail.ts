@@ -28,16 +28,12 @@ export function useBookDetail(userBook: UserBook | null) {
 	const [localBook, setLocalBook] = useState<UserBook | null>(userBook);
 	const [recommendations, setRecommendations] = useState<RecommendedBook[]>([]);
 	const [fetchingRecs, setFetchingRecs] = useState(false);
-	const [recsPage, setRecsPage] = useState(1);
-	const [hasMoreRecs, setHasMoreRecs] = useState(false);
 	const lastBookIdRef = useRef<string | null>(null);
 
 	useEffect(() => {
 		const newId = userBook?.id ?? null;
 		if (newId !== null && newId !== lastBookIdRef.current) {
 			setRecommendations([]);
-			setRecsPage(1);
-			setHasMoreRecs(false);
 		}
 		if (newId !== null) lastBookIdRef.current = newId;
 
@@ -64,7 +60,9 @@ export function useBookDetail(userBook: UserBook | null) {
 			const raw = data as unknown as Review | null;
 			setReview(raw ? { ...raw, sentences: raw.sentences ?? [] } : null);
 			if (freshBook?.books) {
-				setLocalBook(prev => prev ? { ...prev, books: freshBook.books } : prev);
+				setLocalBook(prev =>
+					prev ? { ...prev, books: freshBook.books } : prev,
+				);
 			}
 			setLoading(false);
 		});
@@ -167,7 +165,6 @@ export function useBookDetail(userBook: UserBook | null) {
 				const saved: Review = await res.json();
 				setReview({ ...saved, sentences: (saved.sentences as string[]) ?? [] });
 				setRecommendations([]);
-				setRecsPage(1);
 				Toast.show({ type: 'success', text1: '저장했습니다.' });
 			} catch (err) {
 				showApiError(err);
@@ -178,52 +175,33 @@ export function useBookDetail(userBook: UserBook | null) {
 		[localBook, review],
 	);
 
-	const fetchRecommendations = useCallback(async () => {
-		if (!review?.id) return;
-		setFetchingRecs(true);
-		setRecsPage(1);
-		try {
-			const {
-				data: { session },
-			} = await supabase.auth.getSession();
-			const res = await fetch(
-				`${API_BASE}/reviews/${review.id}/recommendations?page=1`,
-				{ headers: { Authorization: `Bearer ${session?.access_token}` } },
-			);
-			await handleApiResponse(res);
-			const json = await res.json();
-			setRecommendations(json.recommendations ?? []);
-			setHasMoreRecs(json.has_more ?? false);
-		} catch (err) {
-			showApiError(err);
-		} finally {
-			setFetchingRecs(false);
-		}
-	}, [review?.id]);
-
-	const loadMoreRecommendations = useCallback(async () => {
-		if (!review?.id) return;
-		const nextPage = recsPage + 1;
-		setFetchingRecs(true);
-		try {
-			const {
-				data: { session },
-			} = await supabase.auth.getSession();
-			const res = await fetch(
-				`${API_BASE}/reviews/${review.id}/recommendations?page=${nextPage}`,
-				{ headers: { Authorization: `Bearer ${session?.access_token}` } },
-			);
-			await handleApiResponse(res);
-			const json = await res.json();
-			setRecommendations(prev => [...prev, ...(json.recommendations ?? [])]);
-			setHasMoreRecs(json.has_more ?? false);
-			setRecsPage(nextPage);
-		} catch (err) {
-			showApiError(err);
-		} finally {
-			setFetchingRecs(false);
-		}
-	}, [review?.id, recsPage]);
+	const fetchRecommendations = useCallback(
+		async (forceRefresh = false) => {
+			if (!review?.id || !review.content) return;
+			setFetchingRecs(true);
+			try {
+				const {
+					data: { session },
+				} = await supabase.auth.getSession();
+				const res = await fetch(`${API_BASE}/recommendations`, {
+					method: 'POST',
+					headers: {
+						Authorization: `Bearer ${session?.access_token}`,
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({ review_id: review.id, refresh: forceRefresh }),
+				});
+				await handleApiResponse(res);
+				const json = await res.json();
+				setRecommendations(json.recommendations ?? []);
+			} catch (err) {
+				showApiError(err);
+			} finally {
+				setFetchingRecs(false);
+			}
+		},
+		[review?.id, review?.content],
+	);
 
 	return {
 		review,
@@ -233,11 +211,9 @@ export function useBookDetail(userBook: UserBook | null) {
 		localBook,
 		recommendations,
 		fetchingRecs,
-		hasMoreRecs,
 		updateStatus,
 		saveDates,
 		saveReview,
 		fetchRecommendations,
-		loadMoreRecommendations,
 	};
 }

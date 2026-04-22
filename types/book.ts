@@ -34,6 +34,8 @@ export interface RecommendedBook {
 	title: string;
 	author: string | null;
 	cover_image_url: string | null;
+	reason: string | null;
+	similarity: number | null;
 }
 
 export interface CalendarEvent {
