@@ -435,6 +435,13 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 		if (visible) setActiveTab(0);
 	}, [visible]);
 
+	// 리뷰 탭 진입 시 추천 자동 fetch (캐시 있으면 즉시 반환)
+	useEffect(() => {
+		if (activeTab === 2 && review?.content && recommendations.length === 0 && !fetchingRecs) {
+			fetchRecommendations();
+		}
+	}, [activeTab, review?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
 	const handleStatusChange = async (s: ReadingStatus) => {
 		await updateStatus(s);
 	};
