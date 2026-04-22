@@ -59,9 +59,16 @@ export function useBookDetail(userBook: UserBook | null) {
 		]).then(([{ data }, freshBook]) => {
 			const raw = data as unknown as Review | null;
 			setReview(raw ? { ...raw, sentences: raw.sentences ?? [] } : null);
-			if (freshBook?.books) {
+			if (freshBook) {
 				setLocalBook(prev =>
-					prev ? { ...prev, books: freshBook.books } : prev,
+					prev
+						? {
+								...prev,
+								start_date: freshBook.start_date,
+								end_date: freshBook.end_date,
+								books: freshBook.books ?? prev.books,
+							}
+						: prev,
 				);
 			}
 			setLoading(false);

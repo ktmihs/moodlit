@@ -31,7 +31,6 @@ interface RecBook {
 
 type RecEntry = RecBook & { score: number };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function buildRecommendations(reviewId: string, userId: string, userSupabase: any): Promise<RecBook[]> {
 	const admin = getAdminClient();
 
@@ -41,26 +40,74 @@ async function buildRecommendations(reviewId: string, userId: string, userSupaba
 		p_match_count: 10,
 	});
 
-	// 2. 키워드 + 내용 조회
+	// 2. 리뷰 + 책 정보 조회
 	const { data: review } = await userSupabase
 		.from('reviews')
-		.select('content, keywords')
+		.select('content, keywords, user_books(books(title, genre, summary))')
 		.eq('id', reviewId)
 		.single();
 
-	const keywords: string[] =
-		((review?.keywords as string[] | null) ?? []).slice(0, 3).length > 0
-			? (review.keywords as string[]).slice(0, 3)
-			: ((review?.content as string | null) ?? '').split(/\s+/).slice(0, 2);
+	const bookInfo = (review?.user_books as Record<string, unknown>)?.books as
+		| { title?: string; genre?: string; summary?: string }
+		| undefined;
+	const bookContext = [bookInfo?.title, bookInfo?.genre, bookInfo?.summary]
+		.filter(Boolean)
+		.join(' / ');
 
-	// 3. 내 서재 ISBN 필터링
+	// 3. 검색 키워드 생성 (책 주제 + 리뷰 감상 결합)
+	let keywords: string[] = [];
+	if (review?.content) {
+		const storedKeywords = ((review?.keywords as string[] | null) ?? []).slice(0, 3);
+		if (bookContext) {
+			try {
+				const kwRes = await fetch('https://api.openai.com/v1/chat/completions', {
+					method: 'POST',
+					headers: {
+						Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify({
+						model: 'gpt-4o-mini',
+						messages: [
+							{
+								role: 'system',
+								content:
+									'독자의 감상과 책 정보를 바탕으로 카카오 도서 검색에 쓸 검색어 3개를 생성하세요. 책의 주제·장르와 독자가 좋아한 요소를 결합해야 합니다. JSON 배열만 응답: ["검색어1","검색어2","검색어3"]',
+							},
+							{
+								role: 'user',
+								content: `책: ${bookContext}\n감상: ${review.content}`,
+							},
+						],
+						max_tokens: 80,
+						temperature: 0.3,
+					}),
+				});
+				if (kwRes.ok) {
+					const kwJson = await kwRes.json();
+					const text: string = kwJson.choices?.[0]?.message?.content?.trim() ?? '';
+					const parsed = JSON.parse(text) as string[];
+					if (Array.isArray(parsed)) keywords = parsed.slice(0, 3);
+				}
+			} catch {
+				// keyword 생성 실패 시 fallback
+			}
+		}
+		if (keywords.length === 0) {
+			keywords =
+				storedKeywords.length > 0
+					? storedKeywords
+					: (review.content as string).split(/\s+/).slice(0, 3);
+		}
+	}
+
+	// 4. 내 서재 ISBN 필터링
 	const { data: myUserBooks } = await userSupabase
 		.from('user_books')
 		.select('books(isbn)')
 		.eq('user_id', userId);
 
 	const myIsbns = new Set<string>(
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		(myUserBooks ?? []).flatMap((ub: any) => (ub.books?.isbn ? [ub.books.isbn] : [])),
 	);
 
@@ -92,14 +139,12 @@ async function buildRecommendations(reviewId: string, userId: string, userSupaba
 				});
 				if (!r.ok) return [];
 				const json = await r.json();
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				return (json.documents ?? []) as any[];
 			}),
 		);
 
 		kakaoResults.forEach(result => {
 			if (result.status !== 'fulfilled') return;
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 			result.value.forEach((item: any) => {
 				const isbn = item.isbn?.split(' ').at(-1) ?? null;
 				const key = isbn ?? item.title;
