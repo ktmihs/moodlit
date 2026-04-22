@@ -11,6 +11,7 @@ import { errorHandler } from './middleware/errorHandler';
 import { rateLimitMiddleware } from './middleware/rateLimit';
 import booksRouter from './routes/books';
 import calendarRouter from './routes/calendar';
+import recommendationsRouter from './routes/recommendations';
 import reviewsRouter from './routes/reviews';
 import searchBooksRouter from './routes/searchBooks';
 import userBooksRouter from './routes/userBooks';
@@ -85,6 +86,7 @@ app.use(rateLimitMiddleware);
 
 app.use('/books', booksRouter);
 app.use('/calendar', calendarRouter);
+app.use('/recommendations', recommendationsRouter);
 app.use('/search-books', searchBooksRouter);
 app.use('/reviews', reviewsRouter);
 app.use('/user-books', userBooksRouter);
