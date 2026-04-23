@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Image } from 'expo-image';
 import { useEffect, useState } from 'react';
 import {
@@ -62,6 +63,112 @@ const starStyles = StyleSheet.create({
 	row: { flexDirection: 'row', gap: 8 },
 });
 
+// ── 날짜 선택 필드 ──
+function DateField({
+	value,
+	onChange,
+}: {
+	value: string | null;
+	onChange: (d: string) => void;
+}) {
+	const [show, setShow] = useState(false);
+	const [tempDate, setTempDate] = useState(new Date());
+
+	const open = () => {
+		setTempDate(value ? new Date(value) : new Date());
+		setShow(true);
+	};
+
+	const handleChange = (_: unknown, selected?: Date) => {
+		if (Platform.OS === 'android') {
+			setShow(false);
+			if (selected) onChange(selected.toISOString().split('T')[0]);
+		} else {
+			if (selected) setTempDate(selected);
+		}
+	};
+
+	const confirm = () => {
+		setShow(false);
+		onChange(tempDate.toISOString().split('T')[0]);
+	};
+
+	return (
+		<>
+			<Pressable style={pickerStyles.btn} onPress={open}>
+				<Ionicons name="calendar-outline" size={16} color="#555" />
+				<Text style={pickerStyles.btnText}>{value ?? '날짜 선택'}</Text>
+			</Pressable>
+
+			{Platform.OS === 'ios' ? (
+				<Modal visible={show} transparent animationType="fade">
+					<Pressable
+						style={pickerStyles.backdrop}
+						onPress={() => setShow(false)}
+					/>
+					<View style={pickerStyles.sheet}>
+						<DateTimePicker
+							value={tempDate}
+							mode="date"
+							display="spinner"
+							onChange={handleChange}
+							locale="ko-KR"
+							style={pickerStyles.spinner}
+						/>
+						<Pressable style={pickerStyles.confirm} onPress={confirm}>
+							<Text style={pickerStyles.confirmText}>확인</Text>
+						</Pressable>
+					</View>
+				</Modal>
+			) : (
+				show && (
+					<DateTimePicker
+						value={tempDate}
+						mode="date"
+						display="default"
+						onChange={handleChange}
+					/>
+				)
+			)}
+		</>
+	);
+}
+
+const pickerStyles = StyleSheet.create({
+	btn: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 8,
+		borderWidth: 1,
+		borderColor: '#e0e0e0',
+		borderRadius: 8,
+		paddingHorizontal: 14,
+		paddingVertical: 12,
+		marginBottom: 20,
+	},
+	btnText: { fontSize: 15, color: '#1a1a1a' },
+	backdrop: {
+		flex: 1,
+		backgroundColor: 'rgba(0,0,0,0.4)',
+	},
+	sheet: {
+		backgroundColor: '#fff',
+		borderTopLeftRadius: 16,
+		borderTopRightRadius: 16,
+		paddingBottom: 20,
+	},
+	spinner: { height: 200 },
+	confirm: {
+		marginHorizontal: 20,
+		marginTop: 8,
+		backgroundColor: '#1a1a1a',
+		borderRadius: 10,
+		paddingVertical: 14,
+		alignItems: 'center',
+	},
+	confirmText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+});
+
 // ── 탭 1: 상태 ──
 function StatusTab({
 	status,
@@ -109,28 +216,14 @@ function StatusTab({
 			{(status === 'reading' || status === 'finished') && (
 				<>
 					<Text style={styles.sectionLabel}>시작일</Text>
-					<TextInput
-						style={styles.dateInput}
-						value={startDate ?? ''}
-						onChangeText={onStartChange}
-						placeholder="YYYY-MM-DD"
-						placeholderTextColor="#bbb"
-						maxLength={10}
-					/>
+					<DateField value={startDate} onChange={onStartChange} />
 				</>
 			)}
 
 			{status === 'finished' && (
 				<>
 					<Text style={styles.sectionLabel}>완료일</Text>
-					<TextInput
-						style={styles.dateInput}
-						value={endDate ?? ''}
-						onChangeText={onEndChange}
-						placeholder="YYYY-MM-DD"
-						placeholderTextColor="#bbb"
-						maxLength={10}
-					/>
+					<DateField value={endDate} onChange={onEndChange} />
 				</>
 			)}
 
@@ -437,7 +530,12 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 
 	// 리뷰 탭 진입 시 추천 자동 fetch (캐시 있으면 즉시 반환)
 	useEffect(() => {
-		if (activeTab === 2 && review?.content && recommendations.length === 0 && !fetchingRecs) {
+		if (
+			activeTab === 2 &&
+			review?.content &&
+			recommendations.length === 0 &&
+			!fetchingRecs
+		) {
 			fetchRecommendations();
 		}
 	}, [activeTab, review?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -661,17 +759,6 @@ const styles = StyleSheet.create({
 	statusBtnActive: { backgroundColor: '#1a1a1a', borderColor: '#1a1a1a' },
 	statusBtnText: { fontSize: 13, color: '#555', fontWeight: '500' },
 	statusBtnTextActive: { color: '#fff' },
-	dateInput: {
-		borderWidth: 1,
-		borderColor: '#e0e0e0',
-		borderRadius: 8,
-		paddingHorizontal: 14,
-		paddingVertical: 10,
-		fontSize: 15,
-		color: '#1a1a1a',
-		marginBottom: 20,
-	},
-
 	// 문장 탭
 	sentenceInputRow: {
 		flexDirection: 'row',
