@@ -88,7 +88,7 @@ export default function MyPageScreen() {
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
 			<View style={styles.header}>
-				<Text style={styles.headerTitle}>마이페이지</Text>
+				<Text style={styles.headerTitle}>나의 무드</Text>
 			</View>
 
 			<View style={styles.section}>

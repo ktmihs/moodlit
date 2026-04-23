@@ -56,7 +56,7 @@ export default function HomeScreen() {
 		<GestureHandlerRootView style={styles.flex}>
 			<View style={[styles.container, { paddingTop: insets.top }]}>
 				<View style={styles.header}>
-					<Text style={styles.headerTitle}>내 서재</Text>
+					<Text style={styles.headerTitle}>나의 책장</Text>
 					{userBooks.length > 0 && (
 						<Pressable onPress={toggleEditMode} style={styles.editButton}>
 							<Text style={styles.editButtonText}>

@@ -186,7 +186,7 @@ export default function SearchScreen() {
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
 			<View style={styles.header}>
-				<Text style={styles.headerTitle}>책 검색</Text>
+				<Text style={styles.headerTitle}>오늘의 발견</Text>
 			</View>
 
 			<View style={styles.searchBar}>

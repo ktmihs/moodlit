@@ -101,7 +101,7 @@ export default function CalendarScreen() {
 	return (
 		<View style={styles.container}>
 			<View style={styles.header}>
-				<Text style={styles.headerTitle}>독서 달력</Text>
+				<Text style={styles.headerTitle}>독서의 흐름</Text>
 			</View>
 
 			<Calendar

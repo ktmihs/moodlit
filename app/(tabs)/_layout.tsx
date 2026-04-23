@@ -82,7 +82,7 @@ export default function TabLayout() {
 			<Tabs.Screen
 				name="search"
 				options={{
-					title: '검색',
+					title: '발견',
 					tabBarIcon: ({ focused, color, size }) => (
 						<TabIcon
 							name={focused ? 'search' : 'search-outline'}
@@ -96,7 +96,7 @@ export default function TabLayout() {
 			<Tabs.Screen
 				name="calendar"
 				options={{
-					title: '달력',
+					title: '나의 기록',
 					tabBarIcon: ({ focused, color, size }) => (
 						<TabIcon
 							name={focused ? 'calendar' : 'calendar-outline'}
@@ -110,7 +110,7 @@ export default function TabLayout() {
 			<Tabs.Screen
 				name="mypage"
 				options={{
-					title: '마이페이지',
+					title: '무드',
 					tabBarIcon: ({ focused, color, size }) => (
 						<TabIcon
 							name={focused ? 'person' : 'person-outline'}
