@@ -3,12 +3,11 @@ import { useRef, useState } from 'react';
 import {
 	Dimensions,
 	FlatList,
-	NativeScrollEvent,
-	NativeSyntheticEvent,
 	Pressable,
 	StyleSheet,
 	Text,
 	View,
+	ViewToken,
 } from 'react-native';
 import { useFeatureIntroFlag } from '../hooks/useFeatureIntroFlag';
 import { colors, fonts, radius, spacing } from '../lib/theme';
@@ -43,14 +42,23 @@ const SLIDES: Slide[] = [
 	},
 ];
 
+const viewabilityConfig = { itemVisiblePercentThreshold: 60 };
+
 export default function OnboardingScreen() {
 	const { markSeen } = useFeatureIntroFlag();
 	const listRef = useRef<FlatList<Slide>>(null);
 	const [page, setPage] = useState(0);
 
-	const handleMomentumEnd = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-		const next = Math.round(e.nativeEvent.contentOffset.x / width);
-		setPage(next);
+	const onViewableItemsChanged = useRef(
+		({ viewableItems }: { viewableItems: ViewToken[] }) => {
+			const first = viewableItems[0];
+			if (first?.index != null) setPage(first.index);
+		},
+	).current;
+
+	const finish = async () => {
+		await markSeen();
+		router.replace('/(tabs)');
 	};
 
 	const goNext = () => {
@@ -59,11 +67,6 @@ export default function OnboardingScreen() {
 		} else {
 			finish();
 		}
-	};
-
-	const finish = async () => {
-		await markSeen();
-		router.replace('/(tabs)');
 	};
 
 	const isLast = page === SLIDES.length - 1;
@@ -76,22 +79,30 @@ export default function OnboardingScreen() {
 				</Pressable>
 			</View>
 
-			<FlatList
-				ref={listRef}
-				data={SLIDES}
-				keyExtractor={item => item.key}
-				horizontal
-				pagingEnabled
-				showsHorizontalScrollIndicator={false}
-				onMomentumScrollEnd={handleMomentumEnd}
-				renderItem={({ item }) => (
-					<View style={styles.slide}>
-						<Text style={styles.emoji}>{item.emoji}</Text>
-						<Text style={styles.title}>{item.title}</Text>
-						<Text style={styles.body}>{item.body}</Text>
-					</View>
-				)}
-			/>
+			<View style={styles.listWrap}>
+				<FlatList
+					ref={listRef}
+					data={SLIDES}
+					keyExtractor={item => item.key}
+					horizontal
+					pagingEnabled
+					showsHorizontalScrollIndicator={false}
+					onViewableItemsChanged={onViewableItemsChanged}
+					viewabilityConfig={viewabilityConfig}
+					getItemLayout={(_, index) => ({
+						length: width,
+						offset: width * index,
+						index,
+					})}
+					renderItem={({ item }) => (
+						<View style={styles.slide}>
+							<Text style={styles.emoji}>{item.emoji}</Text>
+							<Text style={styles.title}>{item.title}</Text>
+							<Text style={styles.body}>{item.body}</Text>
+						</View>
+					)}
+				/>
+			</View>
 
 			<View style={styles.bottom}>
 				<View style={styles.dots}>
@@ -122,6 +133,9 @@ const styles = StyleSheet.create({
 		fontSize: 13,
 		color: colors.ink.muted,
 		letterSpacing: 0.5,
+	},
+	listWrap: {
+		flex: 1,
 	},
 	slide: {
 		width,
