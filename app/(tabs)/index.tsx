@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BookDetailModal } from '../../components/BookDetailModal';
 import { DraggableGrid } from '../../components/DraggableGrid';
 import { useUserBooks } from '../../hooks/useUserBooks';
+import { colors, fonts, radius, spacing } from '../../lib/theme';
 import type { UserBook } from '../../types/book';
 
 export default function HomeScreen() {
@@ -47,7 +48,7 @@ export default function HomeScreen() {
 	if (loading) {
 		return (
 			<View style={styles.center}>
-				<ActivityIndicator size="large" />
+				<ActivityIndicator size="large" color={colors.ink.primary} />
 			</View>
 		);
 	}
@@ -56,7 +57,10 @@ export default function HomeScreen() {
 		<GestureHandlerRootView style={styles.flex}>
 			<View style={[styles.container, { paddingTop: insets.top }]}>
 				<View style={styles.header}>
-					<Text style={styles.headerTitle}>나의 책장</Text>
+					<View>
+						<Text style={styles.eyebrow}>오늘도 한 페이지</Text>
+						<Text style={styles.headerTitle}>나의 책장</Text>
+					</View>
 					{userBooks.length > 0 && (
 						<Pressable onPress={toggleEditMode} style={styles.editButton}>
 							<Text style={styles.editButtonText}>
@@ -70,7 +74,7 @@ export default function HomeScreen() {
 					<View style={styles.center}>
 						<Text style={styles.emptyText}>아직 담은 책이 없어요</Text>
 						<Text style={styles.emptySubText}>
-							검색 탭에서 책을 찾아 담아보세요
+							‘발견’ 탭에서 마음에 드는 책을 꽂아보세요
 						</Text>
 					</View>
 				) : (
@@ -89,10 +93,19 @@ export default function HomeScreen() {
 						onEndReached={() => onEndReached(editMode)}
 						onEndReachedThreshold={0.3}
 						ListFooterComponent={
-							loadingMore ? <ActivityIndicator style={styles.footer} /> : null
+							loadingMore ? (
+								<ActivityIndicator
+									style={styles.footer}
+									color={colors.ink.muted}
+								/>
+							) : null
 						}
 						refreshControl={
-							<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+							<RefreshControl
+								refreshing={refreshing}
+								onRefresh={onRefresh}
+								tintColor={colors.ink.muted}
+							/>
 						}
 						showsVerticalScrollIndicator={false}
 					/>
@@ -108,29 +121,63 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-	flex: { flex: 1 },
-	container: { flex: 1, backgroundColor: '#fff' },
-	center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+	flex: { flex: 1, backgroundColor: colors.bg.canvas },
+	container: { flex: 1, backgroundColor: colors.bg.canvas },
+	center: {
+		flex: 1,
+		alignItems: 'center',
+		justifyContent: 'center',
+		backgroundColor: colors.bg.canvas,
+		paddingHorizontal: spacing.xxl,
+	},
 	header: {
 		flexDirection: 'row',
-		alignItems: 'center',
+		alignItems: 'flex-end',
 		justifyContent: 'space-between',
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-		borderBottomWidth: 1,
-		borderBottomColor: '#f0f0f0',
+		paddingHorizontal: spacing.xxl,
+		paddingTop: spacing.lg,
+		paddingBottom: spacing.lg,
 	},
-	headerTitle: { fontSize: 22, fontWeight: '700', color: '#1a1a1a' },
-	editButton: { paddingHorizontal: 4, paddingVertical: 4 },
-	editButtonText: { fontSize: 15, color: '#555', fontWeight: '500' },
-	grid: { paddingHorizontal: 12, paddingVertical: 16 },
-	row: { justifyContent: 'flex-start', gap: 12, marginBottom: 20 },
+	eyebrow: {
+		fontFamily: fonts.body,
+		fontSize: 11,
+		color: colors.accent.deep,
+		letterSpacing: 1.5,
+		textTransform: 'uppercase',
+		marginBottom: 4,
+	},
+	headerTitle: {
+		fontFamily: fonts.display,
+		fontSize: 28,
+		color: colors.ink.primary,
+		letterSpacing: 0.3,
+	},
+	editButton: {
+		paddingHorizontal: spacing.md,
+		paddingVertical: spacing.xs + 2,
+		borderRadius: radius.pill,
+		borderWidth: 1,
+		borderColor: colors.border.strong,
+	},
+	editButtonText: {
+		fontFamily: fonts.bodyMedium,
+		fontSize: 12,
+		color: colors.ink.secondary,
+		letterSpacing: 0.3,
+	},
 	emptyText: {
-		fontSize: 16,
-		fontWeight: '600',
-		color: '#333',
+		fontFamily: fonts.display,
+		fontSize: 18,
+		color: colors.ink.primary,
 		marginBottom: 8,
+		textAlign: 'center',
 	},
-	emptySubText: { fontSize: 13, color: '#999' },
-	footer: { paddingVertical: 16 },
+	emptySubText: {
+		fontFamily: fonts.body,
+		fontSize: 13,
+		color: colors.ink.muted,
+		textAlign: 'center',
+		lineHeight: 20,
+	},
+	footer: { paddingVertical: spacing.lg },
 });

@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -14,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { handleApiResponse } from '../../lib/apiError';
 import { supabase } from '../../lib/supabase';
+import { colors, fonts, radius, shadow, spacing } from '../../lib/theme';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 const DEBOUNCE_MS = 300;
@@ -186,14 +188,21 @@ export default function SearchScreen() {
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
 			<View style={styles.header}>
+				<Text style={styles.eyebrow}>새 페이지를 펼치기</Text>
 				<Text style={styles.headerTitle}>오늘의 발견</Text>
 			</View>
 
 			<View style={styles.searchBar}>
+				<Ionicons
+					name="search"
+					size={16}
+					color={colors.ink.muted}
+					style={styles.searchIcon}
+				/>
 				<TextInput
 					style={styles.searchInput}
-					placeholder="제목, 저자로 검색"
-					placeholderTextColor="#999"
+					placeholder="제목, 저자로 찾아보세요"
+					placeholderTextColor={colors.ink.placeholder}
 					value={query}
 					onChangeText={setQuery}
 					autoCorrect={false}
@@ -203,7 +212,7 @@ export default function SearchScreen() {
 
 			{loading ? (
 				<View style={styles.center}>
-					<ActivityIndicator size="large" />
+					<ActivityIndicator size="large" color={colors.ink.primary} />
 				</View>
 			) : (
 				<FlatList
@@ -217,12 +226,26 @@ export default function SearchScreen() {
 					ListEmptyComponent={
 						query.trim() ? (
 							<View style={styles.center}>
-								<Text style={styles.emptyText}>검색 결과가 없어요</Text>
+								<Text style={styles.emptyText}>찾으시는 책이 없네요</Text>
+								<Text style={styles.emptySubText}>
+									다른 키워드로 다시 시도해보세요
+								</Text>
 							</View>
-						) : null
+						) : (
+							<View style={styles.center}>
+								<Text style={styles.emptyHint}>
+									어떤 책이 오늘의 무드와{'\n'}어울릴까요?
+								</Text>
+							</View>
+						)
 					}
 					ListFooterComponent={
-						loadingMore ? <ActivityIndicator style={styles.footer} /> : null
+						loadingMore ? (
+							<ActivityIndicator
+								style={styles.footer}
+								color={colors.ink.muted}
+							/>
+						) : null
 					}
 					contentContainerStyle={styles.list}
 					showsVerticalScrollIndicator={false}
@@ -233,63 +256,118 @@ export default function SearchScreen() {
 }
 
 const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: '#fff' },
+	container: { flex: 1, backgroundColor: colors.bg.canvas },
 	center: {
 		flex: 1,
 		alignItems: 'center',
 		justifyContent: 'center',
-		paddingTop: 60,
+		paddingTop: 80,
+		paddingHorizontal: spacing.xxl,
 	},
 	header: {
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-		borderBottomWidth: 1,
-		borderBottomColor: '#f0f0f0',
+		paddingHorizontal: spacing.xxl,
+		paddingTop: spacing.lg,
+		paddingBottom: spacing.lg,
 	},
-	headerTitle: { fontSize: 22, fontWeight: '700', color: '#1a1a1a' },
-	searchBar: { paddingHorizontal: 16, paddingVertical: 12 },
+	eyebrow: {
+		fontFamily: fonts.body,
+		fontSize: 11,
+		color: colors.accent.deep,
+		letterSpacing: 1.5,
+		textTransform: 'uppercase',
+		marginBottom: 4,
+	},
+	headerTitle: {
+		fontFamily: fonts.display,
+		fontSize: 28,
+		color: colors.ink.primary,
+		letterSpacing: 0.3,
+	},
+	searchBar: {
+		marginHorizontal: spacing.xxl,
+		marginBottom: spacing.md,
+		flexDirection: 'row',
+		alignItems: 'center',
+		backgroundColor: colors.surface,
+		borderRadius: radius.lg,
+		paddingHorizontal: spacing.lg,
+		borderWidth: 1,
+		borderColor: colors.border.base,
+		...shadow.card,
+	},
+	searchIcon: { marginRight: spacing.sm },
 	searchInput: {
-		height: 44,
-		backgroundColor: '#f5f5f5',
-		borderRadius: 10,
-		paddingHorizontal: 14,
-		fontSize: 15,
-		color: '#1a1a1a',
+		flex: 1,
+		height: 48,
+		fontSize: 14,
+		fontFamily: fonts.body,
+		color: colors.ink.primary,
 	},
-	list: { paddingHorizontal: 16, paddingBottom: 20 },
+	list: { paddingHorizontal: spacing.xxl, paddingBottom: spacing.xl },
 	bookItem: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		paddingVertical: 12,
+		paddingVertical: spacing.md + 2,
 		borderBottomWidth: 1,
-		borderBottomColor: '#f5f5f5',
-		gap: 12,
+		borderBottomColor: colors.border.base,
+		gap: spacing.md,
 	},
 	thumbnail: {
-		width: 52,
-		height: 76,
-		borderRadius: 4,
+		width: 54,
+		height: 78,
+		borderRadius: radius.sm,
 		overflow: 'hidden',
-		backgroundColor: '#f0f0f0',
+		backgroundColor: colors.bg.subtle,
 	},
 	thumbnailImage: { width: '100%', height: '100%' },
-	thumbnailPlaceholder: { backgroundColor: '#e8e0d5' },
+	thumbnailPlaceholder: { backgroundColor: colors.accent.soft },
 	bookInfo: { flex: 1, gap: 3 },
 	bookTitle: {
+		fontFamily: fonts.bodyMedium,
 		fontSize: 14,
-		fontWeight: '600',
-		color: '#1a1a1a',
+		color: colors.ink.primary,
 		lineHeight: 20,
 	},
-	bookAuthor: { fontSize: 12, color: '#666' },
-	bookPublisher: { fontSize: 11, color: '#aaa' },
-	addButton: {
-		paddingHorizontal: 14,
-		paddingVertical: 7,
-		backgroundColor: '#1a1a1a',
-		borderRadius: 8,
+	bookAuthor: {
+		fontFamily: fonts.body,
+		fontSize: 12,
+		color: colors.ink.secondary,
 	},
-	addButtonText: { fontSize: 13, fontWeight: '600', color: '#fff' },
-	emptyText: { fontSize: 14, color: '#999' },
-	footer: { paddingVertical: 16 },
+	bookPublisher: {
+		fontFamily: fonts.body,
+		fontSize: 11,
+		color: colors.ink.muted,
+	},
+	addButton: {
+		paddingHorizontal: spacing.lg,
+		paddingVertical: spacing.sm,
+		backgroundColor: colors.ink.primary,
+		borderRadius: radius.pill,
+	},
+	addButtonText: {
+		fontFamily: fonts.bodyBold,
+		fontSize: 12,
+		color: colors.surface,
+		letterSpacing: 0.3,
+	},
+	emptyText: {
+		fontFamily: fonts.display,
+		fontSize: 17,
+		color: colors.ink.primary,
+		marginBottom: 6,
+	},
+	emptySubText: {
+		fontFamily: fonts.body,
+		fontSize: 13,
+		color: colors.ink.muted,
+		textAlign: 'center',
+	},
+	emptyHint: {
+		fontFamily: fonts.display,
+		fontSize: 16,
+		color: colors.ink.muted,
+		textAlign: 'center',
+		lineHeight: 26,
+	},
+	footer: { paddingVertical: spacing.lg },
 });

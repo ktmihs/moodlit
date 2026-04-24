@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -12,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
 import { supabase } from '../../lib/supabase';
+import { colors, fonts, radius, shadow, spacing } from '../../lib/theme';
 
 async function signOut() {
 	const { error } = await supabase.auth.signOut();
@@ -24,8 +26,6 @@ async function deleteAccount() {
 	} = await supabase.auth.getSession();
 	if (!session) throw new Error('로그인이 필요합니다.');
 
-	// Supabase는 클라이언트에서 직접 계정 삭제 불가 → 백엔드 필요
-	// 현재는 로그아웃으로 대체하고 추후 구현
 	throw new Error('계정 탈퇴는 현재 준비 중입니다.');
 }
 
@@ -50,7 +50,6 @@ export default function MyPageScreen() {
 
 	function confirmDeleteAccount() {
 		if (Platform.OS === 'web') {
-			// 웹에서는 window.confirm 사용
 			if (
 				window.confirm(
 					'정말로 계정을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
@@ -88,35 +87,71 @@ export default function MyPageScreen() {
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
 			<View style={styles.header}>
+				<Text style={styles.eyebrow}>당신의 결</Text>
 				<Text style={styles.headerTitle}>나의 무드</Text>
 			</View>
 
+			<View style={styles.profileCard}>
+				<View style={styles.avatar}>
+					<Ionicons name="leaf-outline" size={28} color={colors.accent.deep} />
+				</View>
+				<View style={{ flex: 1 }}>
+					<Text style={styles.profileName}>독자님</Text>
+					<Text style={styles.profileHint}>천천히, 깊이 읽고 있어요</Text>
+				</View>
+			</View>
+
+			<Text style={styles.sectionTitle}>계정</Text>
 			<View style={styles.section}>
 				<Pressable
 					style={[styles.row, loading === 'signout' && styles.rowDisabled]}
 					onPress={handleSignOut}
 					disabled={loading !== null}
 				>
-					<Text style={styles.rowLabel}>로그아웃</Text>
+					<View style={styles.rowLeft}>
+						<Ionicons
+							name="log-out-outline"
+							size={18}
+							color={colors.ink.secondary}
+						/>
+						<Text style={styles.rowLabel}>로그아웃</Text>
+					</View>
 					{loading === 'signout' ? (
-						<ActivityIndicator size="small" color="#666" />
+						<ActivityIndicator size="small" color={colors.ink.muted} />
 					) : (
-						<Text style={styles.rowArrow}>›</Text>
+						<Ionicons
+							name="chevron-forward"
+							size={18}
+							color={colors.ink.muted}
+						/>
 					)}
 				</Pressable>
-			</View>
 
-			<View style={styles.section}>
+				<View style={styles.divider} />
+
 				<Pressable
 					style={[styles.row, loading === 'delete' && styles.rowDisabled]}
 					onPress={confirmDeleteAccount}
 					disabled={loading !== null}
 				>
-					<Text style={[styles.rowLabel, styles.destructive]}>계정 탈퇴</Text>
+					<View style={styles.rowLeft}>
+						<Ionicons
+							name="trash-outline"
+							size={18}
+							color={colors.state.danger}
+						/>
+						<Text style={[styles.rowLabel, styles.destructive]}>
+							계정 탈퇴
+						</Text>
+					</View>
 					{loading === 'delete' ? (
-						<ActivityIndicator size="small" color="#e53e3e" />
+						<ActivityIndicator size="small" color={colors.state.danger} />
 					) : (
-						<Text style={[styles.rowArrow, styles.destructive]}>›</Text>
+						<Ionicons
+							name="chevron-forward"
+							size={18}
+							color={colors.state.danger}
+						/>
 					)}
 				</Pressable>
 			</View>
@@ -125,31 +160,98 @@ export default function MyPageScreen() {
 }
 
 const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: '#f8f8f8' },
+	container: { flex: 1, backgroundColor: colors.bg.canvas },
 	header: {
-		paddingHorizontal: 20,
-		paddingVertical: 16,
-		backgroundColor: '#fff',
-		borderBottomWidth: 1,
-		borderBottomColor: '#f0f0f0',
+		paddingHorizontal: spacing.xxl,
+		paddingTop: spacing.lg,
+		paddingBottom: spacing.lg,
 	},
-	headerTitle: { fontSize: 22, fontWeight: '700', color: '#1a1a1a' },
+	eyebrow: {
+		fontFamily: fonts.body,
+		fontSize: 11,
+		color: colors.accent.deep,
+		letterSpacing: 1.5,
+		textTransform: 'uppercase',
+		marginBottom: 4,
+	},
+	headerTitle: {
+		fontFamily: fonts.display,
+		fontSize: 28,
+		color: colors.ink.primary,
+		letterSpacing: 0.3,
+	},
+	profileCard: {
+		marginHorizontal: spacing.xxl,
+		marginTop: spacing.sm,
+		marginBottom: spacing.xxl,
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: spacing.lg,
+		padding: spacing.xl,
+		backgroundColor: colors.surface,
+		borderRadius: radius.lg,
+		borderWidth: 1,
+		borderColor: colors.border.base,
+		...shadow.card,
+	},
+	avatar: {
+		width: 52,
+		height: 52,
+		borderRadius: radius.pill,
+		backgroundColor: colors.accent.soft,
+		alignItems: 'center',
+		justifyContent: 'center',
+	},
+	profileName: {
+		fontFamily: fonts.display,
+		fontSize: 18,
+		color: colors.ink.primary,
+		marginBottom: 2,
+	},
+	profileHint: {
+		fontFamily: fonts.body,
+		fontSize: 12,
+		color: colors.ink.secondary,
+	},
+	sectionTitle: {
+		fontFamily: fonts.bodyMedium,
+		fontSize: 11,
+		color: colors.ink.muted,
+		letterSpacing: 1.2,
+		textTransform: 'uppercase',
+		paddingHorizontal: spacing.xxl,
+		marginBottom: spacing.sm,
+	},
 	section: {
-		marginTop: 24,
-		backgroundColor: '#fff',
-		borderTopWidth: 1,
-		borderBottomWidth: 1,
-		borderColor: '#f0f0f0',
+		marginHorizontal: spacing.xxl,
+		backgroundColor: colors.surface,
+		borderRadius: radius.lg,
+		borderWidth: 1,
+		borderColor: colors.border.base,
+		overflow: 'hidden',
 	},
 	row: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		justifyContent: 'space-between',
-		paddingHorizontal: 20,
-		paddingVertical: 16,
+		paddingHorizontal: spacing.xl,
+		paddingVertical: spacing.lg,
+	},
+	rowLeft: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: spacing.md,
 	},
 	rowDisabled: { opacity: 0.5 },
-	rowLabel: { fontSize: 16, color: '#1a1a1a' },
-	rowArrow: { fontSize: 20, color: '#ccc' },
-	destructive: { color: '#e53e3e' },
+	rowLabel: {
+		fontFamily: fonts.body,
+		fontSize: 15,
+		color: colors.ink.primary,
+	},
+	divider: {
+		height: 1,
+		backgroundColor: colors.border.base,
+		marginHorizontal: spacing.xl,
+	},
+	destructive: { color: colors.state.danger },
 });
