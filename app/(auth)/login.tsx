@@ -22,8 +22,6 @@ const REDIRECT_URL = 'moodlit://auth/callback';
 const AUTH_ERROR_CODES: Record<string, string> = {
 	invalid_credentials: '이메일 또는 비밀번호가 올바르지 않습니다.',
 	email_not_confirmed: '이메일 인증이 필요합니다. 받은 편지함을 확인해주세요.',
-	user_already_exists: '이미 가입된 이메일입니다.',
-	weak_password: '비밀번호는 6자 이상이어야 합니다.',
 	invalid_email: '올바른 이메일 형식이 아닙니다.',
 	over_email_send_rate_limit: '잠시 후 다시 시도해주세요.',
 	over_request_rate_limit: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.',
@@ -39,12 +37,11 @@ function toKoreanError(err: unknown): string {
 export default function LoginScreen() {
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
-	const [isSignUp, setIsSignUp] = useState(false);
 	const [loading, setLoading] = useState<'email' | 'google' | 'apple' | null>(
 		null,
 	);
 
-	async function handleEmailAuth() {
+	async function handleEmailLogin() {
 		if (!email.trim() || !password.trim()) {
 			Toast.show({ type: 'error', text1: '이메일과 비밀번호를 입력해주세요.' });
 			return;
@@ -52,27 +49,12 @@ export default function LoginScreen() {
 
 		setLoading('email');
 		try {
-			if (isSignUp) {
-				const trimmed = email.trim();
-				const { error } = await supabase.auth.signUp({
-					email: trimmed,
-					password,
-				});
-				if (error) throw error;
-				setPassword('');
-				setIsSignUp(false);
-				router.push({
-					pathname: '/(auth)/registration-success',
-					params: { email: trimmed },
-				});
-			} else {
-				const { error } = await supabase.auth.signInWithPassword({
-					email: email.trim(),
-					password,
-				});
-				if (error) throw error;
-				router.replace('/(tabs)');
-			}
+			const { error } = await supabase.auth.signInWithPassword({
+				email: email.trim(),
+				password,
+			});
+			if (error) throw error;
+			router.replace('/(tabs)');
 		} catch (err: unknown) {
 			Toast.show({ type: 'error', text1: toKoreanError(err) });
 		} finally {
@@ -124,9 +106,9 @@ export default function LoginScreen() {
 			<View style={styles.inner}>
 				<View style={styles.brandWrap}>
 					<Text style={styles.brandMark}>· moodlit ·</Text>
-					<Text style={styles.title}>오늘의 한 페이지</Text>
+					<Text style={styles.title}>다시 오셨어요</Text>
 					<Text style={styles.subtitle}>
-						AI가 펼쳐주는{'\n'}나만의 책 무드
+						오늘의 한 페이지를{'\n'}이어서 펼쳐볼까요.
 					</Text>
 				</View>
 
@@ -198,27 +180,21 @@ export default function LoginScreen() {
 							styles.button,
 							loading === 'email' && styles.buttonDisabled,
 						]}
-						onPress={handleEmailAuth}
+						onPress={handleEmailLogin}
 						disabled={loading !== null}
 					>
 						{loading === 'email' ? (
 							<ActivityIndicator color={colors.surface} />
 						) : (
-							<Text style={styles.buttonText}>
-								{isSignUp ? '회원가입' : '로그인'}
-							</Text>
+							<Text style={styles.buttonText}>로그인</Text>
 						)}
 					</Pressable>
 
 					<Pressable
-						onPress={() => setIsSignUp(v => !v)}
+						onPress={() => router.replace('/(auth)/sign-up')}
 						style={styles.switchButton}
 					>
-						<Text style={styles.switchText}>
-							{isSignUp
-								? '이미 계정이 있으신가요? 로그인'
-								: '계정이 없으신가요? 회원가입'}
-						</Text>
+						<Text style={styles.switchText}>계정이 없으신가요? 회원가입</Text>
 					</Pressable>
 				</View>
 			</View>
