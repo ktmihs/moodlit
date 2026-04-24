@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../hooks/useAuth';
+import { colors, fonts } from '../../lib/theme';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -53,13 +54,14 @@ export default function TabLayout() {
 		<Tabs
 			screenOptions={{
 				headerShown: false,
-				tabBarActiveTintColor: '#1a1a1a',
-				tabBarInactiveTintColor: '#aaa',
+				tabBarActiveTintColor: colors.ink.primary,
+				tabBarInactiveTintColor: colors.ink.muted,
+				tabBarShowLabel: true,
 				tabBarStyle: [
 					styles.tabBar,
 					{
-						height: 52 + insets.bottom,
-						paddingBottom: insets.bottom,
+						height: 80 + insets.bottom,
+						paddingBottom: insets.bottom + 10,
 					},
 				],
 				tabBarLabelStyle: styles.tabLabel,
@@ -127,23 +129,29 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
 	tabBar: {
-		backgroundColor: '#fff',
+		backgroundColor: colors.surface,
 		borderTopWidth: 1,
-		borderTopColor: '#f0f0f0',
+		borderTopColor: colors.border.base,
 		paddingTop: 8,
 		elevation: 0,
 		shadowOpacity: 0,
 	},
 	tabLabel: {
 		fontSize: 11,
-		fontWeight: '500',
-		marginTop: 2,
+		fontFamily: fonts.bodyMedium,
+		letterSpacing: 0.2,
+		marginTop: 4,
+		includeFontPadding: false,
 	},
 	iconWrapper: {
+		width: 28,
+		height: 28,
 		alignItems: 'center',
-		gap: 3,
+		justifyContent: 'center',
 	},
 	dot: {
+		position: 'absolute',
+		bottom: -6,
 		width: 4,
 		height: 4,
 		borderRadius: 2,
