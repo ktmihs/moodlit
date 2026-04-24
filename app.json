@@ -3,10 +3,19 @@
     "name": "mood-lit",
     "slug": "mood-lit",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "orientation": "portrait",
     "scheme": "moodlit",
     "userInterfaceStyle": "automatic",
     "icon": "./assets/images/icon.png",
+    "updates": {
+      "enabled": true,
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD",
+      "url": "https://u.expo.dev/c3f6c487-5e41-4fba-8cd8-ba06ef85e094"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.ktmihs.moodlit",
@@ -37,7 +46,8 @@
       "expo-secure-store",
       "expo-web-browser",
       "@react-native-community/datetimepicker",
-      "expo-font"
+      "expo-font",
+      "expo-updates"
     ],
     "extra": {
       "router": {},
