@@ -18,6 +18,7 @@ import Animated, {
 	useSharedValue,
 	withSpring,
 } from 'react-native-reanimated';
+import { colors, fonts, radius, shadow } from '../lib/theme';
 import type { UserBook } from '../types/book';
 
 if (
@@ -385,46 +386,63 @@ const styles = StyleSheet.create({
 		flexDirection: 'row',
 		flexWrap: 'wrap',
 		paddingHorizontal: H_PAD,
-		paddingVertical: 16,
+		paddingTop: 8,
+		paddingBottom: 24,
 		gap: CARD_GAP,
 	},
 	placeholder: {
 		aspectRatio: 0.68,
-		borderRadius: 8,
-		backgroundColor: '#f0f0f0',
-		borderWidth: 2,
-		borderColor: '#ddd',
+		borderRadius: radius.sm,
+		backgroundColor: colors.bg.subtle,
+		borderWidth: 1.5,
+		borderColor: colors.border.strong,
 		borderStyle: 'dashed',
-		marginBottom: 6 + 32, // cover + title height approx
+		marginBottom: 6 + 32,
 	},
 	coverWrapper: {
-		borderRadius: 8,
+		borderRadius: radius.sm,
 		overflow: 'hidden',
 		aspectRatio: 0.68,
-		backgroundColor: '#f0f0f0',
-		marginBottom: 6,
+		backgroundColor: colors.bg.subtle,
+		marginBottom: 8,
+		...shadow.card,
 	},
 	coverEditing: {
 		borderWidth: 1.5,
-		borderColor: '#1a1a1a30',
+		borderColor: colors.accent.base,
 	},
 	cover: { width: '100%', height: '100%' },
 	coverPlaceholder: {
 		alignItems: 'center',
 		justifyContent: 'center',
 		padding: 8,
-		backgroundColor: '#e8e0d5',
+		backgroundColor: colors.accent.soft,
 	},
-	placeholderText: { fontSize: 10, color: '#666', textAlign: 'center' },
-	bookTitle: { fontSize: 12, color: '#333', lineHeight: 16 },
+	placeholderText: {
+		fontFamily: fonts.bodyMedium,
+		fontSize: 10,
+		color: colors.accent.deep,
+		textAlign: 'center',
+	},
+	bookTitle: {
+		fontFamily: fonts.body,
+		fontSize: 12,
+		color: colors.ink.secondary,
+		lineHeight: 17,
+	},
 	deleteAction: {
-		backgroundColor: '#FF3B30',
+		backgroundColor: colors.state.danger,
 		justifyContent: 'center',
 		alignItems: 'center',
 		width: 72,
-		borderRadius: 8,
+		borderRadius: radius.sm,
 		marginVertical: 4,
 		marginRight: 4,
 	},
-	deleteText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+	deleteText: {
+		fontFamily: fonts.bodyBold,
+		color: colors.surface,
+		fontSize: 13,
+		letterSpacing: 0.5,
+	},
 });

@@ -15,6 +15,7 @@ import {
 	View,
 } from 'react-native';
 import { useBookDetail } from '../hooks/useBookDetail';
+import { colors, fonts, radius, shadow, spacing } from '../lib/theme';
 import type {
 	AiStatus,
 	ReadingStatus,
@@ -50,8 +51,8 @@ function StarRating({
 				<Pressable key={n} onPress={() => onChange(n)} hitSlop={8}>
 					<Ionicons
 						name={n <= value ? 'star' : 'star-outline'}
-						size={32}
-						color={n <= value ? '#f5a623' : '#ccc'}
+						size={30}
+						color={n <= value ? colors.accent.base : colors.border.strong}
 					/>
 				</Pressable>
 			))}
@@ -96,7 +97,11 @@ function DateField({
 	return (
 		<>
 			<Pressable style={pickerStyles.btn} onPress={open}>
-				<Ionicons name="calendar-outline" size={16} color="#555" />
+				<Ionicons
+					name="calendar-outline"
+					size={16}
+					color={colors.ink.secondary}
+				/>
 				<Text style={pickerStyles.btnText}>{value ?? '날짜 선택'}</Text>
 			</Pressable>
 
@@ -140,33 +145,43 @@ const pickerStyles = StyleSheet.create({
 		alignItems: 'center',
 		gap: 8,
 		borderWidth: 1,
-		borderColor: '#e0e0e0',
-		borderRadius: 8,
-		paddingHorizontal: 14,
-		paddingVertical: 12,
-		marginBottom: 20,
+		borderColor: colors.border.base,
+		borderRadius: radius.md,
+		paddingHorizontal: spacing.lg,
+		paddingVertical: spacing.md,
+		marginBottom: spacing.xl,
+		backgroundColor: colors.surface,
 	},
-	btnText: { fontSize: 15, color: '#1a1a1a' },
+	btnText: {
+		fontFamily: fonts.body,
+		fontSize: 14,
+		color: colors.ink.primary,
+	},
 	backdrop: {
 		flex: 1,
-		backgroundColor: 'rgba(0,0,0,0.4)',
+		backgroundColor: colors.overlay,
 	},
 	sheet: {
-		backgroundColor: '#fff',
-		borderTopLeftRadius: 16,
-		borderTopRightRadius: 16,
-		paddingBottom: 20,
+		backgroundColor: colors.surface,
+		borderTopLeftRadius: radius.xl,
+		borderTopRightRadius: radius.xl,
+		paddingBottom: spacing.xl,
 	},
 	spinner: { height: 200 },
 	confirm: {
-		marginHorizontal: 20,
-		marginTop: 8,
-		backgroundColor: '#1a1a1a',
-		borderRadius: 10,
-		paddingVertical: 14,
+		marginHorizontal: spacing.xl,
+		marginTop: spacing.sm,
+		backgroundColor: colors.ink.primary,
+		borderRadius: radius.md,
+		paddingVertical: spacing.md + 2,
 		alignItems: 'center',
 	},
-	confirmText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+	confirmText: {
+		fontFamily: fonts.bodyBold,
+		color: colors.surface,
+		fontSize: 15,
+		letterSpacing: 0.5,
+	},
 });
 
 // ── 탭 1: 상태 ──
@@ -233,16 +248,18 @@ function StatusTab({
 				disabled={saving}
 			>
 				{saving ? (
-					<ActivityIndicator color="#fff" size="small" />
+					<ActivityIndicator color={colors.surface} size="small" />
 				) : (
 					<Text style={styles.saveBtnText}>저장</Text>
 				)}
 			</Pressable>
 
-			{/* AI 책 요약 섹션 */}
 			{summary && (
 				<View style={styles.summarySection}>
-					<Text style={styles.sectionLabel}>AI 책 요약</Text>
+					<View style={styles.summaryHeader}>
+						<View style={styles.summaryDot} />
+						<Text style={styles.sectionLabel}>책 한눈에</Text>
+					</View>
 					<Text style={styles.summaryText}>{summary}</Text>
 				</View>
 			)}
@@ -278,8 +295,8 @@ function SentencesTab({
 					style={styles.sentenceInput}
 					value={input}
 					onChangeText={setInput}
-					placeholder="인상 깊은 문장을 입력하세요"
-					placeholderTextColor="#bbb"
+					placeholder="마음에 남은 문장을 적어보세요"
+					placeholderTextColor={colors.ink.placeholder}
 					multiline
 					returnKeyType="done"
 					blurOnSubmit
@@ -298,13 +315,20 @@ function SentencesTab({
 				showsVerticalScrollIndicator={false}
 			>
 				{sentences.length === 0 ? (
-					<Text style={styles.emptyHint}>저장된 문장이 없어요</Text>
+					<Text style={styles.emptyHint}>
+						문장을 모아두면{'\n'}나만의 책이 완성돼요
+					</Text>
 				) : (
 					sentences.map((s, idx) => (
 						<View key={idx} style={styles.sentenceItem}>
+							<View style={styles.sentenceQuoteBar} />
 							<Text style={styles.sentenceText}>{s}</Text>
 							<Pressable onPress={() => remove(idx)} hitSlop={8}>
-								<Ionicons name="close-circle" size={18} color="#ccc" />
+								<Ionicons
+									name="close-circle"
+									size={18}
+									color={colors.ink.muted}
+								/>
 							</Pressable>
 						</View>
 					))
@@ -351,24 +375,40 @@ function RecommendationCard({ item }: { item: RecommendedBook }) {
 const recStyles = StyleSheet.create({
 	card: {
 		flexDirection: 'row',
-		gap: 12,
-		paddingVertical: 10,
+		gap: spacing.md,
+		paddingVertical: spacing.md,
 		borderBottomWidth: 1,
-		borderBottomColor: '#f5f5f5',
+		borderBottomColor: colors.border.base,
 	},
 	thumb: {
-		width: 44,
-		height: 62,
-		borderRadius: 4,
+		width: 46,
+		height: 64,
+		borderRadius: radius.sm,
 		overflow: 'hidden',
-		backgroundColor: '#f0f0f0',
+		backgroundColor: colors.bg.subtle,
 	},
 	thumbImg: { width: '100%', height: '100%' },
-	thumbPlaceholder: { backgroundColor: '#e8e0d5' },
+	thumbPlaceholder: { backgroundColor: colors.accent.soft },
 	info: { flex: 1, justifyContent: 'center' },
-	title: { fontSize: 14, fontWeight: '600', color: '#1a1a1a', lineHeight: 20 },
-	author: { fontSize: 12, color: '#888', marginTop: 2 },
-	reason: { fontSize: 11, color: '#4D96FF', marginTop: 3 },
+	title: {
+		fontFamily: fonts.bodyMedium,
+		fontSize: 14,
+		color: colors.ink.primary,
+		lineHeight: 20,
+	},
+	author: {
+		fontFamily: fonts.body,
+		fontSize: 12,
+		color: colors.ink.secondary,
+		marginTop: 2,
+	},
+	reason: {
+		fontFamily: fonts.body,
+		fontSize: 11,
+		color: colors.accent.deep,
+		marginTop: 4,
+		fontStyle: 'italic',
+	},
 });
 
 // ── 탭 3: 리뷰 ──
@@ -376,11 +416,11 @@ function ReviewTab({
 	content,
 	rating,
 	memo,
-	aiStatus,
 	saving,
 	recommendations,
 	fetchingRecs,
 	hasContent,
+	aiStatus,
 	onContentChange,
 	onRatingChange,
 	onMemoChange,
@@ -406,24 +446,26 @@ function ReviewTab({
 			<Text style={styles.sectionLabel}>별점</Text>
 			<StarRating value={rating} onChange={onRatingChange} />
 
-			<Text style={[styles.sectionLabel, { marginTop: 24 }]}>한줄 감상</Text>
+			<Text style={[styles.sectionLabel, { marginTop: spacing.xxl }]}>
+				한줄 감상
+			</Text>
 			<TextInput
 				style={styles.contentInput}
 				value={content}
 				onChangeText={onContentChange}
-				placeholder="책에 대한 감상을 한 문장으로 (AI 추천에 활용됩니다)"
-				placeholderTextColor="#bbb"
+				placeholder="이 책이 남긴 한 문장 (AI 추천에 활용돼요)"
+				placeholderTextColor={colors.ink.placeholder}
 				multiline
 				textAlignVertical="top"
 			/>
 
-			<Text style={[styles.sectionLabel, { marginTop: 16 }]}>메모</Text>
+			<Text style={[styles.sectionLabel, { marginTop: spacing.lg }]}>메모</Text>
 			<TextInput
 				style={styles.memoInput}
 				value={memo}
 				onChangeText={onMemoChange}
-				placeholder="책에 대한 생각을 자유롭게 적어보세요"
-				placeholderTextColor="#bbb"
+				placeholder="떠오른 생각을 자유롭게 적어보세요"
+				placeholderTextColor={colors.ink.placeholder}
 				multiline
 				textAlignVertical="top"
 			/>
@@ -434,17 +476,17 @@ function ReviewTab({
 				disabled={saving}
 			>
 				{saving ? (
-					<ActivityIndicator color="#fff" size="small" />
+					<ActivityIndicator color={colors.surface} size="small" />
 				) : (
 					<Text style={styles.saveBtnText}>저장</Text>
 				)}
 			</Pressable>
 
-			{/* AI 추천 섹션 */}
 			{hasContent && (
 				<View style={styles.recSection}>
-					<View style={styles.recHeader}>
-						<Text style={styles.recTitle}>AI 추천 책</Text>
+					<View style={styles.summaryHeader}>
+						<View style={styles.summaryDot} />
+						<Text style={styles.recTitle}>당신을 위한 다음 책</Text>
 					</View>
 
 					{recommendations.length === 0 ? (
@@ -464,9 +506,9 @@ function ReviewTab({
 							}
 						>
 							{fetchingRecs ? (
-								<ActivityIndicator size="small" color="#1a1a1a" />
+								<ActivityIndicator size="small" color={colors.ink.secondary} />
 							) : (
-								<Text style={styles.recBtnText}>추천 책 불러오기</Text>
+								<Text style={styles.recBtnText}>다음 책 추천 받기</Text>
 							)}
 						</Pressable>
 					) : (
@@ -509,7 +551,6 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 		fetchRecommendations,
 	} = useBookDetail(userBook);
 
-	// review 로드 시 로컬 상태 초기화
 	useEffect(() => {
 		setSentences(review?.sentences ?? []);
 		setRating(review?.rating ?? 0);
@@ -517,18 +558,15 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 		setContent(review?.content ?? '');
 	}, [review]);
 
-	// localBook 변경 시 날짜 동기화
 	useEffect(() => {
 		setStartDate(localBook?.start_date ?? null);
 		setEndDate(localBook?.end_date ?? null);
 	}, [localBook]);
 
-	// 모달 열릴 때 탭 리셋
 	useEffect(() => {
 		if (visible) setActiveTab(0);
 	}, [visible]);
 
-	// 리뷰 탭 진입 시 추천 자동 fetch (캐시 있으면 즉시 반환)
 	useEffect(() => {
 		if (
 			activeTab === 2 &&
@@ -562,10 +600,8 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 				<Pressable style={styles.backdrop} onPress={onClose} />
 
 				<View style={styles.sheet}>
-					{/* 핸들 */}
 					<View style={styles.handle} />
 
-					{/* 책 헤더 */}
 					<View style={styles.bookHeader}>
 						<View style={styles.bookThumb}>
 							{userBook.books.cover_image_url ? (
@@ -585,15 +621,16 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 								{userBook.books.title}
 							</Text>
 							{userBook.books.genre && (
-								<Text style={styles.bookGenre}>{userBook.books.genre}</Text>
+								<View style={styles.genreChip}>
+									<Text style={styles.bookGenre}>{userBook.books.genre}</Text>
+								</View>
 							)}
 						</View>
 						<Pressable onPress={onClose} hitSlop={12} style={styles.closeBtn}>
-							<Ionicons name="close" size={22} color="#666" />
+							<Ionicons name="close" size={22} color={colors.ink.secondary} />
 						</Pressable>
 					</View>
 
-					{/* 탭 바 */}
 					<View style={styles.tabBar}>
 						{TABS.map((label, i) => (
 							<Pressable
@@ -614,9 +651,12 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 						))}
 					</View>
 
-					{/* 탭 콘텐츠 */}
 					{loading ? (
-						<ActivityIndicator style={styles.loader} size="large" />
+						<ActivityIndicator
+							style={styles.loader}
+							size="large"
+							color={colors.ink.primary}
+						/>
 					) : (
 						<>
 							{activeTab === 0 && (
@@ -660,235 +700,316 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 	);
 }
 
-const SHEET_HEIGHT = '85%';
+const SHEET_HEIGHT = '88%';
 
 const styles = StyleSheet.create({
 	overlay: { flex: 1, justifyContent: 'flex-end' },
 	backdrop: {
 		...StyleSheet.absoluteFillObject,
-		backgroundColor: 'rgba(0,0,0,0.4)',
+		backgroundColor: colors.overlay,
 	},
 	sheet: {
 		height: SHEET_HEIGHT,
-		backgroundColor: '#fff',
-		borderTopLeftRadius: 20,
-		borderTopRightRadius: 20,
+		backgroundColor: colors.bg.canvas,
+		borderTopLeftRadius: radius.xl + 4,
+		borderTopRightRadius: radius.xl + 4,
 		overflow: 'hidden',
 	},
 	handle: {
-		width: 36,
+		width: 40,
 		height: 4,
 		borderRadius: 2,
-		backgroundColor: '#ddd',
+		backgroundColor: colors.border.strong,
 		alignSelf: 'center',
-		marginTop: 10,
-		marginBottom: 4,
+		marginTop: spacing.md,
+		marginBottom: spacing.sm,
 	},
 
 	// 책 헤더
 	bookHeader: {
 		flexDirection: 'row',
 		alignItems: 'flex-start',
-		paddingHorizontal: 20,
-		paddingVertical: 14,
+		paddingHorizontal: spacing.xxl,
+		paddingVertical: spacing.lg,
 		borderBottomWidth: 1,
-		borderBottomColor: '#f0f0f0',
-		gap: 12,
+		borderBottomColor: colors.border.base,
+		gap: spacing.lg,
 	},
 	bookThumb: {
-		width: 50,
-		height: 72,
-		borderRadius: 4,
+		width: 56,
+		height: 80,
+		borderRadius: radius.sm,
 		overflow: 'hidden',
-		backgroundColor: '#f0f0f0',
+		backgroundColor: colors.bg.subtle,
+		...shadow.card,
 	},
 	bookThumbImg: { width: '100%', height: '100%' },
-	bookThumbPlaceholder: { backgroundColor: '#e8e0d5' },
+	bookThumbPlaceholder: { backgroundColor: colors.accent.soft },
 	bookInfo: { flex: 1 },
 	bookTitle: {
-		fontSize: 15,
-		fontWeight: '600',
-		color: '#1a1a1a',
-		lineHeight: 22,
+		fontFamily: fonts.display,
+		fontSize: 17,
+		color: colors.ink.primary,
+		lineHeight: 24,
+		letterSpacing: 0.2,
 	},
-	bookGenre: { fontSize: 12, color: '#999', marginTop: 4 },
+	genreChip: {
+		alignSelf: 'flex-start',
+		paddingHorizontal: spacing.md,
+		paddingVertical: 3,
+		borderRadius: radius.pill,
+		backgroundColor: colors.accent.soft,
+		marginTop: spacing.sm,
+	},
+	bookGenre: {
+		fontFamily: fonts.body,
+		fontSize: 11,
+		color: colors.accent.deep,
+		letterSpacing: 0.3,
+	},
 	closeBtn: { padding: 2 },
 
 	// 탭 바
 	tabBar: {
 		flexDirection: 'row',
 		borderBottomWidth: 1,
-		borderBottomColor: '#f0f0f0',
+		borderBottomColor: colors.border.base,
+		backgroundColor: colors.bg.canvas,
 	},
 	tabItem: {
 		flex: 1,
 		alignItems: 'center',
-		paddingVertical: 12,
+		paddingVertical: spacing.md + 2,
 	},
-	tabLabel: { fontSize: 14, color: '#999', fontWeight: '500' },
-	tabLabelActive: { color: '#1a1a1a', fontWeight: '700' },
+	tabLabel: {
+		fontFamily: fonts.bodyMedium,
+		fontSize: 13,
+		color: colors.ink.muted,
+		letterSpacing: 0.3,
+	},
+	tabLabelActive: {
+		fontFamily: fonts.bodyBold,
+		color: colors.ink.primary,
+	},
 	tabIndicator: {
 		position: 'absolute',
 		bottom: 0,
 		height: 2,
-		width: '60%',
-		backgroundColor: '#1a1a1a',
+		width: '50%',
+		backgroundColor: colors.accent.base,
 		borderRadius: 1,
 	},
 
 	// 탭 공통
-	tabContent: { padding: 20, paddingBottom: 40 },
-	sectionLabel: {
-		fontSize: 13,
-		fontWeight: '600',
-		color: '#555',
-		marginBottom: 10,
+	tabContent: {
+		padding: spacing.xxl,
+		paddingBottom: spacing.xxxl + 12,
 	},
-	loader: { marginTop: 40 },
+	sectionLabel: {
+		fontFamily: fonts.bodyMedium,
+		fontSize: 12,
+		color: colors.ink.secondary,
+		letterSpacing: 0.5,
+		textTransform: 'uppercase',
+		marginBottom: spacing.md,
+	},
+	loader: { marginTop: spacing.xxxl },
 
 	// 상태 탭
-	statusRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+	statusRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
 	statusBtn: {
 		flex: 1,
-		paddingVertical: 10,
-		borderRadius: 8,
+		paddingVertical: spacing.md,
+		borderRadius: radius.md,
 		borderWidth: 1,
-		borderColor: '#e0e0e0',
+		borderColor: colors.border.base,
+		backgroundColor: colors.surface,
 		alignItems: 'center',
 	},
-	statusBtnActive: { backgroundColor: '#1a1a1a', borderColor: '#1a1a1a' },
-	statusBtnText: { fontSize: 13, color: '#555', fontWeight: '500' },
-	statusBtnTextActive: { color: '#fff' },
+	statusBtnActive: {
+		backgroundColor: colors.ink.primary,
+		borderColor: colors.ink.primary,
+	},
+	statusBtnText: {
+		fontFamily: fonts.bodyMedium,
+		fontSize: 13,
+		color: colors.ink.secondary,
+	},
+	statusBtnTextActive: {
+		fontFamily: fonts.bodyBold,
+		color: colors.surface,
+	},
+
 	// 문장 탭
 	sentenceInputRow: {
 		flexDirection: 'row',
-		gap: 8,
-		paddingHorizontal: 20,
-		paddingTop: 16,
+		gap: spacing.sm,
+		paddingHorizontal: spacing.xxl,
+		paddingTop: spacing.lg,
 	},
 	sentenceInput: {
 		flex: 1,
 		borderWidth: 1,
-		borderColor: '#e0e0e0',
-		borderRadius: 8,
-		paddingHorizontal: 14,
-		paddingVertical: 10,
+		borderColor: colors.border.base,
+		borderRadius: radius.md,
+		paddingHorizontal: spacing.lg,
+		paddingVertical: spacing.md,
 		fontSize: 14,
-		color: '#1a1a1a',
-		maxHeight: 80,
+		fontFamily: fonts.body,
+		color: colors.ink.primary,
+		maxHeight: 100,
+		backgroundColor: colors.surface,
 	},
 	addBtn: {
-		backgroundColor: '#1a1a1a',
-		borderRadius: 8,
-		paddingHorizontal: 14,
+		backgroundColor: colors.ink.primary,
+		borderRadius: radius.md,
+		paddingHorizontal: spacing.lg,
 		justifyContent: 'center',
 	},
-	addBtnDisabled: { backgroundColor: '#ccc' },
-	addBtnText: { color: '#fff', fontSize: 14, fontWeight: '600' },
-	sentenceList: { paddingHorizontal: 20, marginTop: 12 },
+	addBtnDisabled: { backgroundColor: colors.border.strong },
+	addBtnText: {
+		fontFamily: fonts.bodyBold,
+		color: colors.surface,
+		fontSize: 13,
+		letterSpacing: 0.3,
+	},
+	sentenceList: {
+		paddingHorizontal: spacing.xxl,
+		marginTop: spacing.md,
+	},
 	sentenceItem: {
 		flexDirection: 'row',
 		alignItems: 'flex-start',
-		gap: 8,
-		paddingVertical: 12,
-		borderBottomWidth: 1,
-		borderBottomColor: '#f5f5f5',
+		gap: spacing.md,
+		paddingVertical: spacing.md,
+		paddingHorizontal: spacing.lg,
+		marginBottom: spacing.sm,
+		backgroundColor: colors.surface,
+		borderRadius: radius.md,
+		borderWidth: 1,
+		borderColor: colors.border.base,
 	},
-	sentenceText: { flex: 1, fontSize: 14, color: '#333', lineHeight: 20 },
+	sentenceQuoteBar: {
+		width: 3,
+		alignSelf: 'stretch',
+		borderRadius: 2,
+		backgroundColor: colors.accent.base,
+	},
+	sentenceText: {
+		flex: 1,
+		fontFamily: fonts.body,
+		fontSize: 14,
+		color: colors.ink.primary,
+		lineHeight: 22,
+	},
 	emptyHint: {
 		textAlign: 'center',
-		color: '#bbb',
-		fontSize: 14,
-		marginTop: 40,
+		fontFamily: fonts.display,
+		color: colors.ink.muted,
+		fontSize: 15,
+		lineHeight: 24,
+		marginTop: spacing.xxxl,
 	},
 
 	// 리뷰 탭
 	contentInput: {
 		borderWidth: 1,
-		borderColor: '#e0e0e0',
-		borderRadius: 8,
-		paddingHorizontal: 14,
-		paddingVertical: 12,
+		borderColor: colors.border.base,
+		borderRadius: radius.md,
+		paddingHorizontal: spacing.lg,
+		paddingVertical: spacing.md,
 		fontSize: 14,
-		color: '#1a1a1a',
+		fontFamily: fonts.body,
+		color: colors.ink.primary,
 		height: 80,
 		marginBottom: 4,
+		backgroundColor: colors.surface,
 	},
 	memoInput: {
 		borderWidth: 1,
-		borderColor: '#e0e0e0',
-		borderRadius: 8,
-		paddingHorizontal: 14,
-		paddingVertical: 12,
+		borderColor: colors.border.base,
+		borderRadius: radius.md,
+		paddingHorizontal: spacing.lg,
+		paddingVertical: spacing.md,
 		fontSize: 14,
-		color: '#1a1a1a',
-		height: 100,
-		marginBottom: 24,
+		fontFamily: fonts.body,
+		color: colors.ink.primary,
+		height: 110,
+		marginBottom: spacing.xxl,
+		backgroundColor: colors.surface,
 	},
 	saveBtn: {
-		backgroundColor: '#1a1a1a',
-		borderRadius: 10,
-		paddingVertical: 14,
+		backgroundColor: colors.ink.primary,
+		borderRadius: radius.lg,
+		paddingVertical: spacing.md + 2,
 		alignItems: 'center',
 	},
-	saveBtnDisabled: { backgroundColor: '#ccc' },
-	saveBtnText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+	saveBtnDisabled: { backgroundColor: colors.border.strong },
+	saveBtnText: {
+		fontFamily: fonts.bodyBold,
+		color: colors.surface,
+		fontSize: 15,
+		letterSpacing: 0.5,
+	},
 
 	// AI 추천 섹션
 	recSection: {
-		marginTop: 28,
+		marginTop: spacing.xxl + spacing.xs,
 		borderTopWidth: 1,
-		borderTopColor: '#f0f0f0',
-		paddingTop: 20,
+		borderTopColor: colors.border.base,
+		paddingTop: spacing.xl,
 	},
-	recHeader: { marginBottom: 12 },
 	recTitle: {
-		fontSize: 15,
-		fontWeight: '700',
-		color: '#1a1a1a',
-		marginBottom: 8,
+		fontFamily: fonts.display,
+		fontSize: 17,
+		color: colors.ink.primary,
+		letterSpacing: 0.3,
 	},
 	recBtn: {
 		borderWidth: 1,
-		borderColor: '#e0e0e0',
-		borderRadius: 8,
-		paddingVertical: 12,
+		borderColor: colors.accent.base,
+		borderRadius: radius.lg,
+		paddingVertical: spacing.md + 2,
 		alignItems: 'center',
-		marginTop: 8,
+		marginTop: spacing.md,
+		backgroundColor: colors.surface,
 	},
-	recBtnDisabled: { borderColor: '#e0e0e0', opacity: 0.4 },
-	recBtnText: { fontSize: 14, color: '#555', fontWeight: '500' },
-	recRefreshBtn: {
-		flexDirection: 'row',
-		alignItems: 'center',
-		gap: 4,
-		marginTop: 12,
-		alignSelf: 'center',
+	recBtnDisabled: { opacity: 0.4 },
+	recBtnText: {
+		fontFamily: fonts.bodyMedium,
+		fontSize: 13,
+		color: colors.accent.deep,
+		letterSpacing: 0.5,
 	},
-	recRefreshText: { fontSize: 12, color: '#888' },
-	recHint: { fontSize: 13, color: '#aaa', marginTop: 8, lineHeight: 20 },
 
-	// AI 요약 섹션
+	// 책 요약 섹션
 	summarySection: {
-		marginTop: 28,
+		marginTop: spacing.xxl + spacing.xs,
 		borderTopWidth: 1,
-		borderTopColor: '#f0f0f0',
-		paddingTop: 20,
+		borderTopColor: colors.border.base,
+		paddingTop: spacing.xl,
 	},
-	summaryLoading: {
+	summaryHeader: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 8,
-		marginTop: 8,
+		gap: spacing.sm,
+		marginBottom: spacing.md,
 	},
-	summaryLoadingText: { fontSize: 13, color: '#888' },
+	summaryDot: {
+		width: 6,
+		height: 6,
+		borderRadius: 3,
+		backgroundColor: colors.accent.base,
+	},
 	summaryText: {
+		fontFamily: fonts.body,
 		fontSize: 14,
-		color: '#333',
-		lineHeight: 22,
-		marginTop: 8,
-		backgroundColor: '#f8f8f8',
-		borderRadius: 8,
-		padding: 14,
+		color: colors.ink.primary,
+		lineHeight: 24,
+		backgroundColor: colors.surface,
+		borderRadius: radius.md,
+		padding: spacing.lg,
+		borderWidth: 1,
+		borderColor: colors.border.base,
 	},
 });
