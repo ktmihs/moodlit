@@ -53,18 +53,18 @@ export default function LoginScreen() {
 		setLoading('email');
 		try {
 			if (isSignUp) {
+				const trimmed = email.trim();
 				const { error } = await supabase.auth.signUp({
-					email: email.trim(),
+					email: trimmed,
 					password,
 				});
 				if (error) throw error;
-				Toast.show({
-					type: 'success',
-					text1: '회원가입 완료',
-					text2: '로그인해주세요.',
-				});
-				setIsSignUp(false);
 				setPassword('');
+				setIsSignUp(false);
+				router.push({
+					pathname: '/(auth)/registration-success',
+					params: { email: trimmed },
+				});
 			} else {
 				const { error } = await supabase.auth.signInWithPassword({
 					email: email.trim(),
