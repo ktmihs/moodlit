@@ -7,6 +7,7 @@ import Animated, {
 	useAnimatedStyle,
 	useSharedValue,
 	withDelay,
+	withSequence,
 	withTiming,
 } from 'react-native-reanimated';
 import { colors, fonts, spacing } from '../lib/theme';
@@ -26,23 +27,25 @@ export function BrandIntro({ onFinish }: Props) {
 	const scale = useSharedValue(0.92);
 
 	useEffect(() => {
-		opacity.value = withTiming(1, {
-			duration: FADE_IN_MS,
-			easing: Easing.out(Easing.cubic),
-		});
 		scale.value = withTiming(1, {
 			duration: FADE_IN_MS + 200,
 			easing: Easing.out(Easing.cubic),
 		});
 
-		opacity.value = withDelay(
-			FADE_IN_MS + HOLD_MS,
-			withTiming(
-				0,
-				{ duration: FADE_OUT_MS, easing: Easing.in(Easing.cubic) },
-				finished => {
-					if (finished) runOnJS(onFinish)();
-				},
+		opacity.value = withSequence(
+			withTiming(1, {
+				duration: FADE_IN_MS,
+				easing: Easing.out(Easing.cubic),
+			}),
+			withDelay(
+				HOLD_MS,
+				withTiming(
+					0,
+					{ duration: FADE_OUT_MS, easing: Easing.in(Easing.cubic) },
+					finished => {
+						if (finished) runOnJS(onFinish)();
+					},
+				),
 			),
 		);
 	}, [opacity, scale, onFinish]);
