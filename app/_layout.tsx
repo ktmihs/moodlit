@@ -1,16 +1,24 @@
 import { Href, Redirect, Stack } from 'expo-router';
+import { useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import Toast from 'react-native-toast-message';
+import { BrandIntro } from '../components/BrandIntro';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { useAppFonts } from '../hooks/useAppFonts';
 import { useAuth } from '../hooks/useAuth';
+import { useFeatureIntroFlag } from '../hooks/useFeatureIntroFlag';
 import { colors } from '../lib/theme';
 
 export default function RootLayout() {
-	const { session, loading } = useAuth();
+	const { session, loading: authLoading } = useAuth();
 	const fontsLoaded = useAppFonts();
+	const { status: introStatus } = useFeatureIntroFlag();
+	const [introDone, setIntroDone] = useState(false);
 
-	if (loading || !fontsLoaded) {
+	const initializing =
+		authLoading || !fontsLoaded || introStatus === 'loading';
+
+	if (initializing) {
 		return (
 			<View
 				style={{
@@ -25,13 +33,25 @@ export default function RootLayout() {
 		);
 	}
 
+	if (!introDone) {
+		return <BrandIntro onFinish={() => setIntroDone(true)} />;
+	}
+
+	let target: Href | null = null;
+	if (!session) {
+		target = '/(auth)/welcome' as Href;
+	} else if (introStatus === 'unseen') {
+		target = '/onboarding' as Href;
+	}
+
 	return (
 		<ErrorBoundary>
 			<Stack screenOptions={{ headerShown: false }}>
 				<Stack.Screen name="(auth)" />
 				<Stack.Screen name="(tabs)" />
 				<Stack.Screen name="auth/callback" />
-				{!session && <Redirect href={'/(auth)/login' as Href} />}
+				<Stack.Screen name="onboarding" />
+				{target && <Redirect href={target} />}
 			</Stack>
 			<Toast />
 		</ErrorBoundary>
