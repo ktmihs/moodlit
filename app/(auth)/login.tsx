@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import { supabase } from '../../lib/supabase';
+import { colors, fonts, radius, spacing } from '../../lib/theme';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -30,7 +31,6 @@ const AUTH_ERROR_CODES: Record<string, string> = {
 };
 
 function toKoreanError(err: unknown): string {
-	// Supabase AuthError는 code 프로퍼티를 가짐
 	const code = (err as { code?: string })?.code;
 	if (code && AUTH_ERROR_CODES[code]) return AUTH_ERROR_CODES[code];
 	return err instanceof Error ? err.message : '오류가 발생했습니다.';
@@ -43,6 +43,7 @@ export default function LoginScreen() {
 	const [loading, setLoading] = useState<'email' | 'google' | 'apple' | null>(
 		null,
 	);
+
 	async function handleEmailAuth() {
 		if (!email.trim() || !password.trim()) {
 			Toast.show({ type: 'error', text1: '이메일과 비밀번호를 입력해주세요.' });
@@ -121,8 +122,13 @@ export default function LoginScreen() {
 			behavior={Platform.OS === 'ios' ? 'padding' : undefined}
 		>
 			<View style={styles.inner}>
-				<Text style={styles.title}>moodlit</Text>
-				<Text style={styles.subtitle}>AI가 추천하는 나만의 책 무드</Text>
+				<View style={styles.brandWrap}>
+					<Text style={styles.brandMark}>· moodlit ·</Text>
+					<Text style={styles.title}>오늘의 한 페이지</Text>
+					<Text style={styles.subtitle}>
+						AI가 펼쳐주는{'\n'}나만의 책 무드
+					</Text>
+				</View>
 
 				<View style={styles.oauthGroup}>
 					<Pressable
@@ -134,7 +140,7 @@ export default function LoginScreen() {
 						disabled={loading !== null}
 					>
 						{loading === 'google' ? (
-							<ActivityIndicator color="#1a1a1a" />
+							<ActivityIndicator color={colors.ink.primary} />
 						) : (
 							<Text style={styles.oauthText}>Google로 계속하기</Text>
 						)}
@@ -151,7 +157,7 @@ export default function LoginScreen() {
 							disabled={loading !== null}
 						>
 							{loading === 'apple' ? (
-								<ActivityIndicator color="#fff" />
+								<ActivityIndicator color={colors.surface} />
 							) : (
 								<Text style={[styles.oauthText, styles.appleText]}>
 									Apple로 계속하기
@@ -171,7 +177,7 @@ export default function LoginScreen() {
 					<TextInput
 						style={styles.input}
 						placeholder="이메일"
-						placeholderTextColor="#999"
+						placeholderTextColor={colors.ink.placeholder}
 						value={email}
 						onChangeText={setEmail}
 						keyboardType="email-address"
@@ -181,7 +187,7 @@ export default function LoginScreen() {
 					<TextInput
 						style={styles.input}
 						placeholder="비밀번호"
-						placeholderTextColor="#999"
+						placeholderTextColor={colors.ink.placeholder}
 						value={password}
 						onChangeText={setPassword}
 						secureTextEntry
@@ -196,7 +202,7 @@ export default function LoginScreen() {
 						disabled={loading !== null}
 					>
 						{loading === 'email' ? (
-							<ActivityIndicator color="#fff" />
+							<ActivityIndicator color={colors.surface} />
 						) : (
 							<Text style={styles.buttonText}>
 								{isSignUp ? '회원가입' : '로그인'}
@@ -205,9 +211,7 @@ export default function LoginScreen() {
 					</Pressable>
 
 					<Pressable
-						onPress={() => {
-							setIsSignUp(v => !v);
-						}}
+						onPress={() => setIsSignUp(v => !v)}
 						style={styles.switchButton}
 					>
 						<Text style={styles.switchText}>
@@ -223,70 +227,102 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-	container: { flex: 1, backgroundColor: '#fff' },
+	container: { flex: 1, backgroundColor: colors.bg.canvas },
 	inner: {
 		flex: 1,
 		justifyContent: 'center',
-		paddingHorizontal: 32,
+		paddingHorizontal: spacing.xxxl,
+	},
+	brandWrap: {
+		alignItems: 'center',
+		marginBottom: spacing.xxxl + spacing.sm,
+	},
+	brandMark: {
+		fontFamily: fonts.body,
+		fontSize: 12,
+		color: colors.accent.deep,
+		letterSpacing: 3,
+		marginBottom: spacing.lg,
 	},
 	title: {
-		fontSize: 40,
-		fontWeight: '700',
-		color: '#1a1a1a',
+		fontFamily: fonts.display,
+		fontSize: 32,
+		color: colors.ink.primary,
 		textAlign: 'center',
-		marginBottom: 8,
+		marginBottom: spacing.md,
+		letterSpacing: 0.3,
 	},
 	subtitle: {
+		fontFamily: fonts.body,
 		fontSize: 14,
-		color: '#666',
+		color: colors.ink.secondary,
 		textAlign: 'center',
-		marginBottom: 40,
+		lineHeight: 22,
 	},
-	oauthGroup: { gap: 12, marginBottom: 24 },
+	oauthGroup: { gap: spacing.md, marginBottom: spacing.xxl },
 	oauthButton: {
-		height: 52,
+		height: 54,
 		borderWidth: 1,
-		borderColor: '#e0e0e0',
-		borderRadius: 12,
+		borderColor: colors.border.strong,
+		borderRadius: radius.lg,
 		alignItems: 'center',
 		justifyContent: 'center',
-		backgroundColor: '#fff',
+		backgroundColor: colors.surface,
 	},
 	appleButton: {
-		backgroundColor: '#1a1a1a',
-		borderColor: '#1a1a1a',
+		backgroundColor: colors.ink.primary,
+		borderColor: colors.ink.primary,
 	},
-	oauthText: { fontSize: 15, fontWeight: '500', color: '#1a1a1a' },
-	appleText: { color: '#fff' },
+	oauthText: {
+		fontFamily: fonts.bodyMedium,
+		fontSize: 15,
+		color: colors.ink.primary,
+	},
+	appleText: { color: colors.surface },
 	dividerRow: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		marginBottom: 24,
-		gap: 12,
+		marginBottom: spacing.xxl,
+		gap: spacing.md,
 	},
-	divider: { flex: 1, height: 1, backgroundColor: '#e0e0e0' },
-	dividerText: { fontSize: 13, color: '#999' },
-	form: { gap: 12 },
+	divider: { flex: 1, height: 1, backgroundColor: colors.border.base },
+	dividerText: {
+		fontFamily: fonts.body,
+		fontSize: 12,
+		color: colors.ink.muted,
+		letterSpacing: 1,
+	},
+	form: { gap: spacing.md },
 	input: {
-		height: 52,
+		height: 54,
 		borderWidth: 1,
-		borderColor: '#e0e0e0',
-		borderRadius: 12,
-		paddingHorizontal: 16,
+		borderColor: colors.border.base,
+		borderRadius: radius.lg,
+		paddingHorizontal: spacing.lg,
 		fontSize: 15,
-		color: '#1a1a1a',
-		backgroundColor: '#fafafa',
+		fontFamily: fonts.body,
+		color: colors.ink.primary,
+		backgroundColor: colors.surface,
 	},
 	button: {
-		height: 52,
-		backgroundColor: '#1a1a1a',
-		borderRadius: 12,
+		height: 54,
+		backgroundColor: colors.ink.primary,
+		borderRadius: radius.lg,
 		alignItems: 'center',
 		justifyContent: 'center',
-		marginTop: 4,
+		marginTop: spacing.xs,
 	},
 	buttonDisabled: { opacity: 0.5 },
-	buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-	switchButton: { alignItems: 'center', paddingVertical: 8 },
-	switchText: { color: '#666', fontSize: 14 },
+	buttonText: {
+		fontFamily: fonts.bodyBold,
+		color: colors.surface,
+		fontSize: 15,
+		letterSpacing: 0.5,
+	},
+	switchButton: { alignItems: 'center', paddingVertical: spacing.sm },
+	switchText: {
+		fontFamily: fonts.body,
+		color: colors.ink.secondary,
+		fontSize: 13,
+	},
 });
