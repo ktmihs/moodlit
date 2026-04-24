@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
 	ActivityIndicator,
 	KeyboardAvoidingView,
@@ -34,12 +34,43 @@ function toKoreanError(err: unknown): string {
 	return err instanceof Error ? err.message : '오류가 발생했습니다.';
 }
 
+async function completeOAuth(resultUrl: string) {
+	const url = new URL(resultUrl);
+
+	const errDesc =
+		url.searchParams.get('error_description') ??
+		new URLSearchParams(url.hash.replace(/^#/, '')).get('error_description');
+	if (errDesc) throw new Error(errDesc);
+
+	const code = url.searchParams.get('code');
+	if (code) {
+		const { error } = await supabase.auth.exchangeCodeForSession(code);
+		if (error) throw error;
+		return true;
+	}
+
+	const fragment = new URLSearchParams(url.hash.replace(/^#/, ''));
+	const accessToken = fragment.get('access_token');
+	const refreshToken = fragment.get('refresh_token');
+	if (accessToken && refreshToken) {
+		const { error } = await supabase.auth.setSession({
+			access_token: accessToken,
+			refresh_token: refreshToken,
+		});
+		if (error) throw error;
+		return true;
+	}
+
+	return false;
+}
+
 export default function LoginScreen() {
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [loading, setLoading] = useState<'email' | 'google' | 'apple' | null>(
 		null,
 	);
+	const passwordRef = useRef<TextInput>(null);
 
 	async function handleEmailLogin() {
 		if (!email.trim() || !password.trim()) {
@@ -78,17 +109,11 @@ export default function LoginScreen() {
 			);
 
 			if (result.type === 'success') {
-				const url = new URL(result.url);
-				const params = new URLSearchParams(url.hash.slice(1));
-				const accessToken = params.get('access_token');
-				const refreshToken = params.get('refresh_token');
-
-				if (accessToken && refreshToken) {
-					await supabase.auth.setSession({
-						access_token: accessToken,
-						refresh_token: refreshToken,
-					});
+				const ok = await completeOAuth(result.url);
+				if (ok) {
 					router.replace('/(tabs)');
+				} else {
+					throw new Error('로그인 응답을 해석하지 못했습니다.');
 				}
 			}
 		} catch (err: unknown) {
@@ -165,14 +190,20 @@ export default function LoginScreen() {
 						keyboardType="email-address"
 						autoCapitalize="none"
 						autoCorrect={false}
+						returnKeyType="next"
+						onSubmitEditing={() => passwordRef.current?.focus()}
+						blurOnSubmit={false}
 					/>
 					<TextInput
+						ref={passwordRef}
 						style={styles.input}
 						placeholder="비밀번호"
 						placeholderTextColor={colors.ink.placeholder}
 						value={password}
 						onChangeText={setPassword}
 						secureTextEntry
+						returnKeyType="go"
+						onSubmitEditing={handleEmailLogin}
 					/>
 
 					<Pressable
