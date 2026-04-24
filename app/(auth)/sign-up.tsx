@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
 	ActivityIndicator,
 	KeyboardAvoidingView,
@@ -33,6 +33,7 @@ export default function SignUpScreen() {
 	const [email, setEmail] = useState('');
 	const [password, setPassword] = useState('');
 	const [loading, setLoading] = useState(false);
+	const passwordRef = useRef<TextInput>(null);
 
 	async function handleSignUp() {
 		if (!email.trim() || !password.trim()) {
@@ -88,14 +89,20 @@ export default function SignUpScreen() {
 						keyboardType="email-address"
 						autoCapitalize="none"
 						autoCorrect={false}
+						returnKeyType="next"
+						onSubmitEditing={() => passwordRef.current?.focus()}
+						blurOnSubmit={false}
 					/>
 					<TextInput
+						ref={passwordRef}
 						style={styles.input}
 						placeholder="비밀번호 (6자 이상)"
 						placeholderTextColor={colors.ink.placeholder}
 						value={password}
 						onChangeText={setPassword}
 						secureTextEntry
+						returnKeyType="go"
+						onSubmitEditing={handleSignUp}
 					/>
 
 					<Pressable
