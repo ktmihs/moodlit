@@ -32,7 +32,7 @@ Supabase의 **pgvector** 임베딩 유사도와 **카카오 도서 검색 API** 
 ### Backend ([backend/](backend/))
 - **Express 4** + **TypeScript** (`tsx watch`)
 - **Zod** 스키마 검증 / `helmet` / `express-rate-limit`
-- **node-cron**: 매일 02:00 UTC AI 워커 배치 ([backend/src/index.ts:101](backend/src/index.ts#L101))
+- **node-cron**: 매일 02:00 UTC AI 워커 배치
 - Supabase Service Role 키로 RLS 우회 + 사용자 토큰 검증
 
 ### Database ([supabase/migrations/](supabase/migrations/))
@@ -67,41 +67,6 @@ mood-lit/
 │     └─ routes/              # books · userBooks · searchBooks · reviews · calendar · recommendations
 └─ supabase/migrations/       # 스키마 / RLS / AI worker / recommendations
 ```
-
----
-
-## API 엔드포인트 (요약)
-
-모든 사용자 라우트는 `Authorization: Bearer <supabase access_token>` 필요.
-
-| Method | Path | 설명 |
-| --- | --- | --- |
-| `GET`  | `/search-books`        | 카카오 도서 검색 프록시 (q, page, limit) |
-| `GET`  | `/books/:id`           | 책 상세 |
-| `GET`  | `/user-books`          | 내 서재 목록 (정렬/페이지네이션) |
-| `POST` | `/user-books`          | 서재에 책 추가 |
-| `PATCH`| `/user-books/:id`      | 상태/평점/순서 변경 |
-| `DELETE`| `/user-books/:id`     | 서재에서 삭제 |
-| `GET`  | `/calendar`            | 기간 내 독서 이벤트 |
-| `POST` | `/reviews`             | 리뷰 작성 (AI 워커가 후처리) |
-| `POST` | `/recommendations`     | 리뷰 기반 추천 (캐시 + SWR) |
-| `POST` | `/ai-worker/run`       | AI 워커 수동 실행 (`x-worker-key` 필요) |
-
----
-
-## 추천 알고리즘 동작 흐름
-
-[backend/src/routes/recommendations.ts](backend/src/routes/recommendations.ts) 참고.
-
-1. **캐시 확인** — `recommendations` 테이블에서 `review_id`로 조회 (TTL 6시간)
-   - 신선 → 즉시 반환
-   - Stale → **stale 즉시 반환 + 백그라운드 재생성** (SWR 패턴)
-2. **pgvector 유사도 검색** — `match_books_by_review` RPC로 상위 10권 (가중치 ×3)
-3. **검색 키워드 생성** — 책 정보 + 리뷰 감상을 GPT-4o-mini로 3개 키워드 생성
-4. **카카오 도서 검색** — 키워드별 병렬 호출, ISBN 기준 병합
-5. **내 서재 ISBN 제외** 후 점수순 정렬, 상위 10권 추출
-6. **추천 사유 생성** — 상위 5권에 대해 GPT-4o-mini가 10~15자 사유 작성
-7. 결과를 캐시에 upsert
 
 ---
 
@@ -182,19 +147,3 @@ npm run ios          # iOS
 | --- | --- |
 | `npm run dev` | `tsx watch` 핫 리로드 |
 | `npm run start` | 프로덕션 실행 |
-
----
-
-## 보안 / 운영 메모
-
-- **Helmet** + **CORS 화이트리스트** + **요청당 100req/분 글로벌 레이트 리밋**
-- 사용자 라우트는 `requireAuth` 미들웨어로 Supabase JWT 검증
-- AI 워커 엔드포인트는 `x-worker-key` 헤더로 보호
-- RLS 정책으로 사용자 데이터 격리 (`supabase/migrations/20260406000002_rls.sql`)
-- 추천 캐시 TTL 6시간 + SWR로 첫 응답 지연 최소화
-
----
-
-## 라이선스
-
-내부 프로젝트 (KTMIHS / RaonTech).
