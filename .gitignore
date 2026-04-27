@@ -51,5 +51,8 @@ app-example
 # executables
 *.exe
 
+# Shell crash dumps (Git Bash on Windows)
+*.stackdump
+
 # Supabase CLI temp
 supabase/.temp/
