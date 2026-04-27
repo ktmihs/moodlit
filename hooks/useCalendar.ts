@@ -109,5 +109,12 @@ export function useCalendar() {
 
 	const periodMarks = buildPeriodMarks(data.events);
 
-	return { data, loading, currentMonth, periodMarks, fetchMonth, getEventsForDate };
+	return {
+		data,
+		loading,
+		currentMonth,
+		periodMarks,
+		fetchMonth,
+		getEventsForDate,
+	};
 }

@@ -15,8 +15,7 @@ export default function RootLayout() {
 	const { status: introStatus } = useFeatureIntroFlag();
 	const [introDone, setIntroDone] = useState(false);
 
-	const initializing =
-		authLoading || !fontsLoaded || introStatus === 'loading';
+	const initializing = authLoading || !fontsLoaded || introStatus === 'loading';
 
 	if (initializing) {
 		return (

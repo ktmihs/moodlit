@@ -816,7 +816,11 @@ const styles = StyleSheet.create({
 	loader: { marginTop: spacing.xxxl },
 
 	// 상태 탭
-	statusRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.xl },
+	statusRow: {
+		flexDirection: 'row',
+		gap: spacing.sm,
+		marginBottom: spacing.xl,
+	},
 	statusBtn: {
 		flex: 1,
 		paddingVertical: spacing.md,

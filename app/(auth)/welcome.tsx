@@ -12,9 +12,7 @@ export default function WelcomeScreen() {
 				<Image source={LOGO} style={styles.logo} contentFit="contain" />
 				<Text style={styles.mark}>· moodlit ·</Text>
 				<Text style={styles.title}>오늘의 한 페이지</Text>
-				<Text style={styles.subtitle}>
-					AI가 펼쳐주는{'\n'}나만의 책 무드
-				</Text>
+				<Text style={styles.subtitle}>AI가 펼쳐주는{'\n'}나만의 책 무드</Text>
 			</View>
 
 			<View style={styles.actions}>

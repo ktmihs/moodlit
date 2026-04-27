@@ -74,9 +74,7 @@ export default function SignUpScreen() {
 				<View style={styles.header}>
 					<Text style={styles.mark}>· moodlit ·</Text>
 					<Text style={styles.title}>가입하고 시작하기</Text>
-					<Text style={styles.subtitle}>
-						이메일로 moodlit을 시작해보세요.
-					</Text>
+					<Text style={styles.subtitle}>이메일로 moodlit을 시작해보세요.</Text>
 				</View>
 
 				<View style={styles.form}>
@@ -121,7 +119,9 @@ export default function SignUpScreen() {
 						onPress={() => router.replace('/(auth)/login')}
 						style={styles.switchButton}
 					>
-						<Text style={styles.switchText}>이미 계정이 있으신가요? 로그인</Text>
+						<Text style={styles.switchText}>
+							이미 계정이 있으신가요? 로그인
+						</Text>
 					</Pressable>
 				</View>
 			</View>
