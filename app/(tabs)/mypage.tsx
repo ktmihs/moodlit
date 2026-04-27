@@ -1,19 +1,29 @@
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
 	ActivityIndicator,
 	Alert,
+	Linking,
 	Platform,
 	Pressable,
+	ScrollView,
 	StyleSheet,
 	Text,
 	View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Toast from 'react-native-toast-message';
+import { useAuth } from '../../hooks/useAuth';
 import { supabase } from '../../lib/supabase';
 import { colors, fonts, radius, shadow, spacing } from '../../lib/theme';
+
+const SUPPORT_EMAIL = 'yellowgreen423@gmail.com';
+const PRIVACY_URL = 'https://moodlit.app/privacy';
+const TERMS_URL = 'https://moodlit.app/terms';
+
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 async function signOut() {
 	const { error } = await supabase.auth.signOut();
@@ -21,23 +31,57 @@ async function signOut() {
 }
 
 async function deleteAccount() {
-	const {
-		data: { session },
-	} = await supabase.auth.getSession();
-	if (!session) throw new Error('로그인이 필요합니다.');
+	const { error } = await supabase.functions.invoke('delete-account', {
+		method: 'POST',
+	});
+	if (error) throw error;
+	// Edge Function이 auth.users를 삭제했지만 클라이언트에 남아있는 토큰은 별도로 비워준다
+	await supabase.auth.signOut();
+}
 
-	throw new Error('계정 탈퇴는 현재 준비 중입니다.');
+async function openExternal(url: string) {
+	try {
+		const canOpen = await Linking.canOpenURL(url);
+		if (!canOpen) throw new Error('지원하지 않는 링크입니다.');
+		await Linking.openURL(url);
+	} catch {
+		Toast.show({ type: 'error', text1: '링크를 열 수 없습니다.' });
+	}
 }
 
 export default function MyPageScreen() {
 	const insets = useSafeAreaInsets();
+	const { session } = useAuth();
+	const [displayName, setDisplayName] = useState<string | null>(null);
 	const [loading, setLoading] = useState<'signout' | 'delete' | null>(null);
+
+	const email = session?.user?.email ?? '';
+
+	useEffect(() => {
+		const userId = session?.user?.id;
+		if (!userId) return;
+
+		let cancelled = false;
+		(async () => {
+			const { data } = await supabase
+				.from('users')
+				.select('display_name')
+				.eq('id', userId)
+				.maybeSingle();
+			const row = data as { display_name: string | null } | null;
+			if (!cancelled) setDisplayName(row?.display_name ?? null);
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [session?.user?.id]);
 
 	async function handleSignOut() {
 		setLoading('signout');
 		try {
 			await signOut();
-			router.replace('/(auth)/login' as never);
+			router.replace('/(auth)/welcome' as never);
 		} catch (err: unknown) {
 			Toast.show({
 				type: 'error',
@@ -49,31 +93,25 @@ export default function MyPageScreen() {
 	}
 
 	function confirmDeleteAccount() {
+		const message =
+			'정말로 계정을 삭제하시겠습니까?\n독서 기록·리뷰가 모두 영구 삭제되며 되돌릴 수 없습니다.';
+
 		if (Platform.OS === 'web') {
-			if (
-				window.confirm(
-					'정말로 계정을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
-				)
-			) {
-				handleDeleteAccount();
-			}
+			if (window.confirm(message)) handleDeleteAccount();
 			return;
 		}
-		Alert.alert(
-			'계정 탈퇴',
-			'정말로 계정을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.',
-			[
-				{ text: '취소', style: 'cancel' },
-				{ text: '탈퇴', style: 'destructive', onPress: handleDeleteAccount },
-			],
-		);
+		Alert.alert('계정 탈퇴', message, [
+			{ text: '취소', style: 'cancel' },
+			{ text: '탈퇴', style: 'destructive', onPress: handleDeleteAccount },
+		]);
 	}
 
 	async function handleDeleteAccount() {
 		setLoading('delete');
 		try {
 			await deleteAccount();
-			router.replace('/(auth)/login' as never);
+			Toast.show({ type: 'success', text1: '계정이 삭제되었습니다.' });
+			router.replace('/(auth)/welcome' as never);
 		} catch (err: unknown) {
 			Toast.show({
 				type: 'error',
@@ -84,8 +122,14 @@ export default function MyPageScreen() {
 		}
 	}
 
+	const profileTitle = displayName?.trim() || '독자님';
+
 	return (
-		<View style={[styles.container, { paddingTop: insets.top }]}>
+		<ScrollView
+			style={[styles.container, { paddingTop: insets.top }]}
+			contentContainerStyle={{ paddingBottom: spacing.xxxl }}
+			showsVerticalScrollIndicator={false}
+		>
 			<View style={styles.header}>
 				<Text style={styles.eyebrow}>당신의 결</Text>
 				<Text style={styles.headerTitle}>나의 무드</Text>
@@ -96,8 +140,16 @@ export default function MyPageScreen() {
 					<Ionicons name="leaf-outline" size={28} color={colors.accent.deep} />
 				</View>
 				<View style={{ flex: 1 }}>
-					<Text style={styles.profileName}>독자님</Text>
-					<Text style={styles.profileHint}>천천히, 깊이 읽고 있어요</Text>
+					<Text style={styles.profileName} numberOfLines={1}>
+						{profileTitle}
+					</Text>
+					{email ? (
+						<Text style={styles.profileEmail} numberOfLines={1}>
+							{email}
+						</Text>
+					) : (
+						<Text style={styles.profileHint}>천천히, 깊이 읽고 있어요</Text>
+					)}
 				</View>
 			</View>
 
@@ -140,9 +192,7 @@ export default function MyPageScreen() {
 							size={18}
 							color={colors.state.danger}
 						/>
-						<Text style={[styles.rowLabel, styles.destructive]}>
-							계정 탈퇴
-						</Text>
+						<Text style={[styles.rowLabel, styles.destructive]}>계정 탈퇴</Text>
 					</View>
 					{loading === 'delete' ? (
 						<ActivityIndicator size="small" color={colors.state.danger} />
@@ -155,7 +205,68 @@ export default function MyPageScreen() {
 					)}
 				</Pressable>
 			</View>
-		</View>
+
+			<Text style={styles.sectionTitle}>지원</Text>
+			<View style={styles.section}>
+				<Pressable
+					style={styles.row}
+					onPress={() => openExternal(`mailto:${SUPPORT_EMAIL}`)}
+				>
+					<View style={styles.rowLeft}>
+						<Ionicons
+							name="mail-outline"
+							size={18}
+							color={colors.ink.secondary}
+						/>
+						<Text style={styles.rowLabel}>문의하기</Text>
+					</View>
+					<Ionicons
+						name="open-outline"
+						size={16}
+						color={colors.ink.muted}
+					/>
+				</Pressable>
+			</View>
+
+			<Text style={styles.sectionTitle}>법적 고지</Text>
+			<View style={styles.section}>
+				<Pressable style={styles.row} onPress={() => openExternal(PRIVACY_URL)}>
+					<View style={styles.rowLeft}>
+						<Ionicons
+							name="shield-checkmark-outline"
+							size={18}
+							color={colors.ink.secondary}
+						/>
+						<Text style={styles.rowLabel}>개인정보처리방침</Text>
+					</View>
+					<Ionicons
+						name="open-outline"
+						size={16}
+						color={colors.ink.muted}
+					/>
+				</Pressable>
+
+				<View style={styles.divider} />
+
+				<Pressable style={styles.row} onPress={() => openExternal(TERMS_URL)}>
+					<View style={styles.rowLeft}>
+						<Ionicons
+							name="document-text-outline"
+							size={18}
+							color={colors.ink.secondary}
+						/>
+						<Text style={styles.rowLabel}>이용약관</Text>
+					</View>
+					<Ionicons
+						name="open-outline"
+						size={16}
+						color={colors.ink.muted}
+					/>
+				</Pressable>
+			</View>
+
+			<Text style={styles.versionText}>moodlit · v{APP_VERSION}</Text>
+		</ScrollView>
 	);
 }
 
@@ -208,6 +319,11 @@ const styles = StyleSheet.create({
 		color: colors.ink.primary,
 		marginBottom: 2,
 	},
+	profileEmail: {
+		fontFamily: fonts.body,
+		fontSize: 12,
+		color: colors.ink.secondary,
+	},
 	profileHint: {
 		fontFamily: fonts.body,
 		fontSize: 12,
@@ -220,6 +336,7 @@ const styles = StyleSheet.create({
 		letterSpacing: 1.2,
 		textTransform: 'uppercase',
 		paddingHorizontal: spacing.xxl,
+		marginTop: spacing.lg,
 		marginBottom: spacing.sm,
 	},
 	section: {
@@ -254,4 +371,12 @@ const styles = StyleSheet.create({
 		marginHorizontal: spacing.xl,
 	},
 	destructive: { color: colors.state.danger },
+	versionText: {
+		marginTop: spacing.xxl,
+		textAlign: 'center',
+		fontFamily: fonts.body,
+		fontSize: 11,
+		color: colors.ink.muted,
+		letterSpacing: 1.5,
+	},
 });
