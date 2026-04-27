@@ -222,6 +222,13 @@ export default function LoginScreen() {
 					</Pressable>
 
 					<Pressable
+						onPress={() => router.push('/(auth)/forgot-password')}
+						style={styles.forgotButton}
+					>
+						<Text style={styles.forgotText}>비밀번호를 잊으셨나요?</Text>
+					</Pressable>
+
+					<Pressable
 						onPress={() => router.replace('/(auth)/sign-up')}
 						style={styles.switchButton}
 					>
@@ -330,6 +337,16 @@ const styles = StyleSheet.create({
 	switchText: {
 		fontFamily: fonts.body,
 		color: colors.ink.secondary,
+		fontSize: 13,
+	},
+	forgotButton: {
+		alignItems: 'center',
+		paddingVertical: spacing.xs,
+		marginTop: spacing.xs,
+	},
+	forgotText: {
+		fontFamily: fonts.body,
+		color: colors.ink.muted,
 		fontSize: 13,
 	},
 });

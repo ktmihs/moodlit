@@ -8,11 +8,17 @@ export default function AuthCallback() {
 
 	useEffect(() => {
 		const run = async () => {
+			// 비밀번호 재설정 플로우는 type=recovery 로 식별한다
+			const type = params.type as string | undefined;
+			const isRecovery = type === 'recovery';
+
 			const code = params.code as string | undefined;
 			if (code) {
 				const { error } = await supabase.auth.exchangeCodeForSession(code);
 				if (!error) {
-					router.replace('/(tabs)');
+					router.replace(
+						(isRecovery ? '/(auth)/reset-password' : '/(tabs)') as Href,
+					);
 					return;
 				}
 			}
@@ -25,7 +31,9 @@ export default function AuthCallback() {
 					refresh_token: refreshToken,
 				});
 				if (!error) {
-					router.replace('/(tabs)');
+					router.replace(
+						(isRecovery ? '/(auth)/reset-password' : '/(tabs)') as Href,
+					);
 					return;
 				}
 			}
