@@ -1,11 +1,12 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import {
 	ActivityIndicator,
 	FlatList,
+	Modal,
 	Pressable,
 	RefreshControl,
-	ScrollView,
 	StyleSheet,
 	Text,
 	View,
@@ -29,37 +30,53 @@ const SORT_OPTIONS: SortOption[] = [
 	'recently_finished',
 ];
 
-function SortBar({
+function SortSheet({
+	visible,
 	current,
-	onChange,
+	onSelect,
+	onClose,
 }: {
+	visible: boolean;
 	current: SortOption;
-	onChange: (s: SortOption) => void;
+	onSelect: (s: SortOption) => void;
+	onClose: () => void;
 }) {
 	return (
-		<ScrollView
-			horizontal
-			showsHorizontalScrollIndicator={false}
-			contentContainerStyle={sortStyles.row}
-			style={sortStyles.wrap}
-		>
-			{SORT_OPTIONS.map(opt => (
-				<Pressable
-					key={opt}
-					style={[sortStyles.pill, current === opt && sortStyles.pillActive]}
-					onPress={() => onChange(opt)}
-				>
-					<Text
+		<Modal visible={visible} transparent animationType="fade">
+			<Pressable style={sheetStyles.backdrop} onPress={onClose} />
+			<View style={sheetStyles.sheet}>
+				<View style={sheetStyles.handle} />
+				{SORT_OPTIONS.map((opt, i) => (
+					<Pressable
+						key={opt}
 						style={[
-							sortStyles.pillText,
-							current === opt && sortStyles.pillTextActive,
+							sheetStyles.row,
+							i < SORT_OPTIONS.length - 1 && sheetStyles.rowBorder,
 						]}
+						onPress={() => {
+							onSelect(opt);
+							onClose();
+						}}
 					>
-						{SORT_LABELS[opt]}
-					</Text>
-				</Pressable>
-			))}
-		</ScrollView>
+						<Text
+							style={[
+								sheetStyles.rowText,
+								current === opt && sheetStyles.rowTextActive,
+							]}
+						>
+							{SORT_LABELS[opt]}
+						</Text>
+						{current === opt && (
+							<Ionicons
+								name="checkmark"
+								size={18}
+								color={colors.accent.deep}
+							/>
+						)}
+					</Pressable>
+				))}
+			</View>
+		</Modal>
 	);
 }
 
@@ -67,6 +84,7 @@ export default function HomeScreen() {
 	const insets = useSafeAreaInsets();
 	const [editMode, setEditMode] = useState(false);
 	const [selectedBook, setSelectedBook] = useState<UserBook | null>(null);
+	const [sortSheetVisible, setSortSheetVisible] = useState(false);
 
 	const {
 		userBooks,
@@ -94,7 +112,7 @@ export default function HomeScreen() {
 		setEditMode(v => !v);
 	}, [editMode, fetchAll]);
 
-	const handleSortChange = useCallback(
+	const handleSortSelect = useCallback(
 		async (newSort: SortOption) => {
 			if (editMode) setEditMode(false);
 			await changeSort(newSort);
@@ -118,16 +136,27 @@ export default function HomeScreen() {
 						<Text style={styles.eyebrow}>오늘도 한 페이지</Text>
 						<Text style={styles.headerTitle}>나의 책장</Text>
 					</View>
-					{userBooks.length > 0 && canReorder && (
-						<Pressable onPress={toggleEditMode} style={styles.editButton}>
-							<Text style={styles.editButtonText}>
-								{editMode ? '완료' : '편집'}
-							</Text>
+					<View style={styles.headerRight}>
+						<Pressable
+							style={styles.sortButton}
+							onPress={() => setSortSheetVisible(true)}
+						>
+							<Text style={styles.sortButtonText}>{SORT_LABELS[sort]}</Text>
+							<Ionicons
+								name="chevron-down"
+								size={13}
+								color={colors.ink.secondary}
+							/>
 						</Pressable>
-					)}
+						{userBooks.length > 0 && canReorder && (
+							<Pressable onPress={toggleEditMode} style={styles.editButton}>
+								<Text style={styles.editButtonText}>
+									{editMode ? '완료' : '편집'}
+								</Text>
+							</Pressable>
+						)}
+					</View>
 				</View>
-
-				<SortBar current={sort} onChange={handleSortChange} />
 
 				{userBooks.length === 0 ? (
 					<View style={styles.center}>
@@ -170,10 +199,18 @@ export default function HomeScreen() {
 					/>
 				)}
 			</View>
+
 			<BookDetailModal
 				userBook={selectedBook}
 				visible={selectedBook !== null}
 				onClose={() => setSelectedBook(null)}
+			/>
+
+			<SortSheet
+				visible={sortSheetVisible}
+				current={sort}
+				onSelect={handleSortSelect}
+				onClose={() => setSortSheetVisible(false)}
 			/>
 		</GestureHandlerRootView>
 	);
@@ -197,18 +234,26 @@ const styles = StyleSheet.create({
 		paddingTop: spacing.lg,
 		paddingBottom: spacing.lg,
 	},
-	eyebrow: {
-		fontFamily: fonts.body,
-		fontSize: 11,
-		color: colors.accent.deep,
-		letterSpacing: 1.5,
-		textTransform: 'uppercase',
-		marginBottom: 4,
+	headerRight: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: spacing.sm,
 	},
-	headerTitle: {
-		fontFamily: fonts.display,
-		fontSize: 28,
-		color: colors.ink.primary,
+	sortButton: {
+		flexDirection: 'row',
+		alignItems: 'center',
+		gap: 4,
+		paddingHorizontal: spacing.md,
+		paddingVertical: spacing.xs + 2,
+		borderRadius: radius.pill,
+		borderWidth: 1,
+		borderColor: colors.border.strong,
+		backgroundColor: colors.surface,
+	},
+	sortButtonText: {
+		fontFamily: fonts.bodyMedium,
+		fontSize: 12,
+		color: colors.ink.secondary,
 		letterSpacing: 0.3,
 	},
 	editButton: {
@@ -241,32 +286,44 @@ const styles = StyleSheet.create({
 	footer: { paddingVertical: spacing.lg },
 });
 
-const sortStyles = StyleSheet.create({
-	wrap: { flexGrow: 0, marginBottom: spacing.sm },
+const sheetStyles = StyleSheet.create({
+	backdrop: {
+		flex: 1,
+		backgroundColor: colors.overlay,
+	},
+	sheet: {
+		backgroundColor: colors.surface,
+		borderTopLeftRadius: radius.xl,
+		borderTopRightRadius: radius.xl,
+		paddingBottom: spacing.xxxl,
+		paddingTop: spacing.md,
+	},
+	handle: {
+		width: 36,
+		height: 4,
+		borderRadius: radius.pill,
+		backgroundColor: colors.border.strong,
+		alignSelf: 'center',
+		marginBottom: spacing.lg,
+	},
 	row: {
 		flexDirection: 'row',
-		gap: spacing.sm,
+		alignItems: 'center',
+		justifyContent: 'space-between',
 		paddingHorizontal: spacing.xxl,
-		paddingBottom: spacing.sm,
+		paddingVertical: spacing.lg,
 	},
-	pill: {
-		paddingHorizontal: spacing.md,
-		paddingVertical: 6,
-		borderRadius: radius.pill,
-		borderWidth: 1,
-		borderColor: colors.border.strong,
-		backgroundColor: colors.surface,
+	rowBorder: {
+		borderBottomWidth: 1,
+		borderBottomColor: colors.border.base,
 	},
-	pillActive: {
-		backgroundColor: colors.ink.primary,
-		borderColor: colors.ink.primary,
-	},
-	pillText: {
+	rowText: {
 		fontFamily: fonts.body,
-		fontSize: 12,
-		color: colors.ink.secondary,
+		fontSize: 15,
+		color: colors.ink.primary,
 	},
-	pillTextActive: {
-		color: colors.surface,
+	rowTextActive: {
+		fontFamily: fonts.bodyMedium,
+		color: colors.accent.deep,
 	},
 });
