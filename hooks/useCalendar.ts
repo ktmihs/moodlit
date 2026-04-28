@@ -30,16 +30,18 @@ const OVERFLOW_COLOR = '#d0d0d0';
 function buildPeriodMarks(events: CalendarEvent[]): MarkedDates {
 	const result: MarkedDates = {};
 
+	const today = new Date().toISOString().split('T')[0];
 	events.forEach((ev, idx) => {
 		const color = HIGHLIGHT_COLORS[idx % HIGHLIGHT_COLORS.length];
 		const start = new Date(ev.start_date);
-		const end = ev.end_date ? new Date(ev.end_date) : start;
+		const endStr = ev.end_date ?? today;
+		const end = new Date(endStr);
 		const cur = new Date(start);
 
 		while (cur <= end) {
 			const dateStr = cur.toISOString().split('T')[0];
 			const isFirst = dateStr === ev.start_date;
-			const isLast = dateStr === (ev.end_date ?? ev.start_date);
+			const isLast = dateStr === endStr;
 
 			if (!result[dateStr]) result[dateStr] = { periods: [] };
 			result[dateStr].periods.push({
@@ -99,8 +101,9 @@ export function useCalendar() {
 
 	const getEventsForDate = useCallback(
 		(dateString: string): CalendarEvent[] => {
+			const today = new Date().toISOString().split('T')[0];
 			return data.events.filter(ev => {
-				const end = ev.end_date ?? ev.start_date;
+				const end = ev.end_date ?? today;
 				return dateString >= ev.start_date && dateString <= end;
 			});
 		},

@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
-import { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
 	ActivityIndicator,
 	ScrollView,
@@ -39,9 +40,11 @@ function BookCard({ event }: { event: CalendarEvent }) {
 				)}
 				<Text style={cardStyles.period}>
 					{event.start_date}
-					{event.end_date && event.end_date !== event.start_date
-						? ` ~ ${event.end_date}`
-						: ''}
+					{event.end_date
+						? event.end_date !== event.start_date
+							? ` ~ ${event.end_date}`
+							: ''
+						: ' ~ 읽는 중'}
 				</Text>
 			</View>
 		</View>
@@ -93,9 +96,14 @@ export default function CalendarScreen() {
 		useCalendar();
 	const [selectedDate, setSelectedDate] = useState<string>('');
 
-	useEffect(() => {
-		fetchMonth(currentMonth);
-	}, []); // eslint-disable-line react-hooks/exhaustive-deps
+	useFocusEffect(
+		useCallback(() => {
+			fetchMonth(currentMonth);
+			return () => {
+				setSelectedDate('');
+			};
+		}, [fetchMonth, currentMonth]),
+	);
 
 	const handleMonthChange = (month: { dateString: string }) => {
 		const ym = month.dateString.slice(0, 7);

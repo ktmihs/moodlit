@@ -34,12 +34,14 @@ router.get('/', async (req, res) => {
 		.order('start_date', { ascending: true });
 
 	if (month) {
-		// YYYY-MM 형식으로 해당 월 범위 필터
 		const from = `${month}-01`;
 		const [y, m] = month.split('-').map(Number);
 		const nextMonth =
 			m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`;
-		query = query.gte('start_date', from).lt('start_date', nextMonth);
+		// 해당 월과 기간이 겹치는 책: 시작일 < 다음달 첫날 AND (종료일 >= 이번달 첫날 OR 아직 읽는 중)
+		query = query
+			.lt('start_date', nextMonth)
+			.or(`end_date.gte.${from},end_date.is.null`);
 	}
 
 	const { data, error } = await query;
@@ -79,9 +81,10 @@ router.get('/', async (req, res) => {
 		marked_dates[date].dots.push({ key, color: '#1a1a1a' });
 	};
 
+	const today = new Date().toISOString().split('T')[0];
 	for (const ev of events) {
 		const start = new Date(ev.start_date);
-		const end = ev.end_date ? new Date(ev.end_date) : start;
+		const end = new Date(ev.end_date ?? today);
 		const cur = new Date(start);
 
 		while (cur <= end) {
