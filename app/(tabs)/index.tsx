@@ -132,7 +132,7 @@ export default function HomeScreen() {
 		<GestureHandlerRootView style={styles.flex}>
 			<View style={[styles.container, { paddingTop: insets.top }]}>
 				<View style={styles.header}>
-					<View>
+					<View style={styles.headerTitleWrap}>
 						<Text style={styles.eyebrow}>오늘도 한 페이지</Text>
 						<Text style={styles.headerTitle}>나의 책장</Text>
 					</View>
@@ -234,10 +234,26 @@ const styles = StyleSheet.create({
 		paddingTop: spacing.lg,
 		paddingBottom: spacing.lg,
 	},
+	headerTitleWrap: { flex: 1 },
+	eyebrow: {
+		fontFamily: fonts.body,
+		fontSize: 11,
+		color: colors.accent.deep,
+		letterSpacing: 1.5,
+		textTransform: 'uppercase',
+		marginBottom: 4,
+	},
+	headerTitle: {
+		fontFamily: fonts.display,
+		fontSize: 28,
+		color: colors.ink.primary,
+		letterSpacing: 0.3,
+	},
 	headerRight: {
 		flexDirection: 'row',
 		alignItems: 'center',
 		gap: spacing.sm,
+		flexShrink: 0,
 	},
 	sortButton: {
 		flexDirection: 'row',
