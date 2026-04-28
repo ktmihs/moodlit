@@ -110,6 +110,20 @@ export default function TabLayout() {
 				}}
 			/>
 			<Tabs.Screen
+				name="recommend"
+				options={{
+					title: '추천',
+					tabBarIcon: ({ focused, color, size }) => (
+						<TabIcon
+							name={focused ? 'sparkles' : 'sparkles-outline'}
+							focused={focused}
+							color={color}
+							size={size}
+						/>
+					),
+				}}
+			/>
+			<Tabs.Screen
 				name="mypage"
 				options={{
 					title: '무드',

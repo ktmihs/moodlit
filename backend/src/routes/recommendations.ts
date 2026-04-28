@@ -5,7 +5,7 @@ import { validate } from '../lib/validate';
 import { getAdminClient } from '../middleware/auth';
 
 const router = Router();
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6시간
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7일
 
 const postBody = z.object({
 	review_id: z.string().uuid('유효한 review_id가 필요합니다.'),
@@ -207,11 +207,11 @@ async function buildRecommendations(
 							{
 								role: 'system',
 								content:
-									'독자의 감상을 바탕으로 각 추천 책에 대한 추천 이유를 10~15자로 작성하세요. 반드시 JSON 배열만 응답하세요: [{"index":1,"reason":"..."},...]',
+									'독자가 읽은 책의 주제·줄거리와 감상을 함께 고려해, 각 추천 책에 대한 추천 이유를 10~15자로 작성하세요. 반드시 JSON 배열만 응답하세요: [{"index":1,"reason":"..."},...]',
 							},
 							{
 								role: 'user',
-								content: `감상: ${review.content}\n\n추천 책:\n${bookList}`,
+								content: `읽은 책: ${bookContext || '정보 없음'}\n감상: ${review.content}\n\n추천 책:\n${bookList}`,
 							},
 						],
 						max_tokens: 200,
@@ -238,6 +238,102 @@ async function buildRecommendations(
 
 	return sorted.map(({ score: _score, ...rest }) => rest);
 }
+
+// ── GET /recommendations/aggregate?min_rating=N ──
+router.get('/aggregate', async (req, res) => {
+	const raw = parseInt(req.query.min_rating as string);
+	const minRating = Number.isNaN(raw) ? 4 : Math.min(5, Math.max(1, raw));
+	const { supabase, user } = req.auth;
+	const admin = getAdminClient();
+
+	// 별점 기준 이상이고 감상이 있는 리뷰 목록
+	const { data: reviews } = await supabase
+		.from('reviews')
+		.select('id, content')
+		.gte('rating', minRating)
+		.not('content', 'is', null);
+
+	if (!reviews || reviews.length === 0) {
+		return void apiSuccess(res, { recommendations: [], pending_count: 0 });
+	}
+
+	const reviewIds = (reviews as { id: string; content: string }[]).map(
+		r => r.id,
+	);
+
+	// 캐시 일괄 조회
+	const { data: cachedRows } = await admin
+		.from('recommendations')
+		.select('review_id, results, cached_at')
+		.in('review_id', reviewIds);
+
+	const cachedMap = new Map(
+		(
+			cachedRows as
+				| { review_id: string; results: RecBook[]; cached_at: string }[]
+				| null
+		)?.map(c => [c.review_id, c]) ?? [],
+	);
+
+	const now = Date.now();
+	const fresh: RecBook[][] = [];
+	const uncachedReviews = (
+		reviews as { id: string; content: string }[]
+	).filter(r => {
+		const c = cachedMap.get(r.id);
+		if (!c) return true;
+		const age = now - new Date(c.cached_at).getTime();
+		if (age < CACHE_TTL_MS) {
+			fresh.push(c.results);
+			return false;
+		}
+		return true;
+	});
+
+	// 미캐시 리뷰는 백그라운드에서 빌드
+	uncachedReviews.forEach(r => {
+		buildRecommendations(r.id, user.id, supabase)
+			.then(recs =>
+				admin.from('recommendations').upsert(
+					{
+						review_id: r.id,
+						results: recs,
+						cached_at: new Date().toISOString(),
+					},
+					{ onConflict: 'review_id' },
+				),
+			)
+			.catch(() => {});
+	});
+
+	// 신선한 캐시를 merge · dedupe · 재랭킹
+	const merged = new Map<string, { book: RecBook; count: number }>();
+	for (const books of fresh) {
+		for (const book of books) {
+			const key = book.isbn ?? book.title;
+			const existing = merged.get(key);
+			if (existing) {
+				existing.count += 1;
+			} else {
+				merged.set(key, { book, count: 1 });
+			}
+		}
+	}
+
+	const result = Array.from(merged.values())
+		.sort(
+			(a, b) =>
+				b.count - a.count ||
+				(b.book.similarity ?? 0) - (a.book.similarity ?? 0),
+		)
+		.slice(0, 20)
+		.map(({ book }) => book);
+
+	return void apiSuccess(res, {
+		recommendations: result,
+		pending_count: uncachedReviews.length,
+	});
+});
 
 // ── POST /recommendations ──
 router.post('/', validate({ body: postBody }), async (req, res) => {
