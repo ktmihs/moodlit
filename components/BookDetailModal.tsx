@@ -72,116 +72,117 @@ function DateField({
 	value: string | null;
 	onChange: (d: string) => void;
 }) {
-	const [show, setShow] = useState(false);
-	const [tempDate, setTempDate] = useState(new Date());
+	const [showPicker, setShowPicker] = useState(false);
+	const [draft, setDraft] = useState(value ?? '');
 
-	const open = () => {
-		setTempDate(value ? new Date(value) : new Date());
-		setShow(true);
-	};
+	useEffect(() => {
+		setDraft(value ?? '');
+	}, [value]);
 
-	const handleChange = (_: unknown, selected?: Date) => {
-		if (Platform.OS === 'android') {
-			setShow(false);
-			if (selected) onChange(selected.toISOString().split('T')[0]);
-		} else {
-			if (selected) setTempDate(selected);
+	const pickerDate = (() => {
+		const d = new Date(value ?? '');
+		return isNaN(d.getTime()) ? new Date() : d;
+	})();
+
+	const handlePickerChange = (_: unknown, selected?: Date) => {
+		if (Platform.OS === 'android') setShowPicker(false);
+		if (selected) {
+			const str = selected.toISOString().split('T')[0];
+			setDraft(str);
+			onChange(str);
 		}
 	};
 
-	const confirm = () => {
-		setShow(false);
-		onChange(tempDate.toISOString().split('T')[0]);
+	const handleTextBlur = () => {
+		if (/^\d{4}-\d{2}-\d{2}$/.test(draft)) {
+			const d = new Date(draft);
+			if (!isNaN(d.getTime())) {
+				onChange(draft);
+				return;
+			}
+		}
+		setDraft(value ?? '');
 	};
 
 	return (
-		<>
-			<Pressable style={pickerStyles.btn} onPress={open}>
-				<Ionicons
-					name="calendar-outline"
-					size={16}
-					color={colors.ink.secondary}
+		<View style={pickerStyles.wrap}>
+			<View style={pickerStyles.row}>
+				<TextInput
+					style={pickerStyles.textInput}
+					value={draft}
+					onChangeText={setDraft}
+					onBlur={handleTextBlur}
+					placeholder={'YYYY-MM-DD'}
+					placeholderTextColor={colors.ink.placeholder}
+					keyboardType={'numbers-and-punctuation'}
+					maxLength={10}
+					returnKeyType={'done'}
 				/>
-				<Text style={pickerStyles.btnText}>{value ?? '날짜 선택'}</Text>
-			</Pressable>
+				<Pressable
+					style={pickerStyles.calBtn}
+					onPress={() => setShowPicker(v => !v)}
+				>
+					<Ionicons
+						name={showPicker ? 'calendar' : 'calendar-outline'}
+						size={18}
+						color={showPicker ? colors.accent.deep : colors.ink.secondary}
+					/>
+				</Pressable>
+			</View>
 
-			{Platform.OS === 'ios' ? (
-				<Modal visible={show} transparent animationType="fade">
-					<Pressable
-						style={pickerStyles.backdrop}
-						onPress={() => setShow(false)}
-					/>
-					<View style={pickerStyles.sheet}>
-						<DateTimePicker
-							value={tempDate}
-							mode="date"
-							display="spinner"
-							onChange={handleChange}
-							locale="ko-KR"
-							style={pickerStyles.spinner}
-						/>
-						<Pressable style={pickerStyles.confirm} onPress={confirm}>
-							<Text style={pickerStyles.confirmText}>확인</Text>
-						</Pressable>
-					</View>
-				</Modal>
-			) : (
-				show && (
-					<DateTimePicker
-						value={tempDate}
-						mode="date"
-						display="default"
-						onChange={handleChange}
-					/>
-				)
+			{showPicker && Platform.OS === 'ios' && (
+				<DateTimePicker
+					value={pickerDate}
+					mode={'date'}
+					display={'inline'}
+					onChange={handlePickerChange}
+					locale={'ko-KR'}
+					accentColor={colors.accent.base}
+					style={pickerStyles.inlinePicker}
+				/>
 			)}
-		</>
+			{showPicker && Platform.OS === 'android' && (
+				<DateTimePicker
+					value={pickerDate}
+					mode={'date'}
+					display={'default'}
+					onChange={handlePickerChange}
+				/>
+			)}
+		</View>
 	);
 }
 
 const pickerStyles = StyleSheet.create({
-	btn: {
+	wrap: { marginBottom: spacing.xl },
+	row: {
 		flexDirection: 'row',
 		alignItems: 'center',
-		gap: 8,
+		gap: spacing.sm,
+	},
+	textInput: {
+		flex: 1,
+		height: 44,
 		borderWidth: 1,
 		borderColor: colors.border.base,
 		borderRadius: radius.md,
 		paddingHorizontal: spacing.lg,
-		paddingVertical: spacing.md,
-		marginBottom: spacing.xl,
-		backgroundColor: colors.surface,
-	},
-	btnText: {
 		fontFamily: fonts.body,
 		fontSize: 14,
 		color: colors.ink.primary,
-	},
-	backdrop: {
-		flex: 1,
-		backgroundColor: colors.overlay,
-	},
-	sheet: {
 		backgroundColor: colors.surface,
-		borderTopLeftRadius: radius.xl,
-		borderTopRightRadius: radius.xl,
-		paddingBottom: spacing.xl,
 	},
-	spinner: { height: 200 },
-	confirm: {
-		marginHorizontal: spacing.xl,
-		marginTop: spacing.sm,
-		backgroundColor: colors.ink.primary,
+	calBtn: {
+		width: 44,
+		height: 44,
+		borderWidth: 1,
+		borderColor: colors.border.base,
 		borderRadius: radius.md,
-		paddingVertical: spacing.md + 2,
 		alignItems: 'center',
+		justifyContent: 'center',
+		backgroundColor: colors.surface,
 	},
-	confirmText: {
-		fontFamily: fonts.bodyBold,
-		color: colors.surface,
-		fontSize: 15,
-		letterSpacing: 0.5,
-	},
+	inlinePicker: { marginTop: spacing.sm },
 });
 
 // ── 탭 1: 상태 ──
