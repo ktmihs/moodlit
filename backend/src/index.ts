@@ -10,6 +10,7 @@ import { requireAuth } from './middleware/auth';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimitMiddleware } from './middleware/rateLimit';
 import booksRouter from './routes/books';
+import legalRouter from './routes/legal';
 import calendarRouter from './routes/calendar';
 import recommendationsRouter from './routes/recommendations';
 import reviewsRouter from './routes/reviews';
@@ -95,6 +96,8 @@ app.post('/ai-worker/run-book-summary', async (req, res) => {
 			.json({ error: { code: 'INTERNAL_ERROR', message: String(err) } });
 	}
 });
+
+app.use(legalRouter);
 
 app.use(requireAuth);
 app.use(rateLimitMiddleware);
