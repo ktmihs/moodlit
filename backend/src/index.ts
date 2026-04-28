@@ -40,6 +40,10 @@ app.use(
 	}),
 );
 app.use(express.json());
+app.use((_req, res, next) => {
+	res.setHeader('Cache-Control', 'no-store');
+	next();
+});
 
 function workerAuth(
 	req: import('express').Request,
