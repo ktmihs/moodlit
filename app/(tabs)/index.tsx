@@ -5,6 +5,7 @@ import {
 	FlatList,
 	Pressable,
 	RefreshControl,
+	ScrollView,
 	StyleSheet,
 	Text,
 	View,
@@ -13,9 +14,54 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BookDetailModal } from '../../components/BookDetailModal';
 import { DraggableGrid } from '../../components/DraggableGrid';
-import { useUserBooks } from '../../hooks/useUserBooks';
+import {
+	SORT_LABELS,
+	SortOption,
+	useUserBooks,
+} from '../../hooks/useUserBooks';
 import { colors, fonts, radius, spacing } from '../../lib/theme';
 import type { UserBook } from '../../types/book';
+
+const SORT_OPTIONS: SortOption[] = [
+	'rank',
+	'newest',
+	'oldest',
+	'recently_finished',
+];
+
+function SortBar({
+	current,
+	onChange,
+}: {
+	current: SortOption;
+	onChange: (s: SortOption) => void;
+}) {
+	return (
+		<ScrollView
+			horizontal
+			showsHorizontalScrollIndicator={false}
+			contentContainerStyle={sortStyles.row}
+			style={sortStyles.wrap}
+		>
+			{SORT_OPTIONS.map(opt => (
+				<Pressable
+					key={opt}
+					style={[sortStyles.pill, current === opt && sortStyles.pillActive]}
+					onPress={() => onChange(opt)}
+				>
+					<Text
+						style={[
+							sortStyles.pillText,
+							current === opt && sortStyles.pillTextActive,
+						]}
+					>
+						{SORT_LABELS[opt]}
+					</Text>
+				</Pressable>
+			))}
+		</ScrollView>
+	);
+}
 
 export default function HomeScreen() {
 	const insets = useSafeAreaInsets();
@@ -27,9 +73,12 @@ export default function HomeScreen() {
 		loading,
 		loadingMore,
 		refreshing,
+		sort,
+		canReorder,
 		fetchAll,
 		onRefresh,
 		onEndReached,
+		changeSort,
 		handleDragEnd,
 		deleteBook,
 	} = useUserBooks();
@@ -44,6 +93,14 @@ export default function HomeScreen() {
 		if (!editMode) await fetchAll();
 		setEditMode(v => !v);
 	}, [editMode, fetchAll]);
+
+	const handleSortChange = useCallback(
+		async (newSort: SortOption) => {
+			if (editMode) setEditMode(false);
+			await changeSort(newSort);
+		},
+		[editMode, changeSort],
+	);
 
 	if (loading) {
 		return (
@@ -61,7 +118,7 @@ export default function HomeScreen() {
 						<Text style={styles.eyebrow}>오늘도 한 페이지</Text>
 						<Text style={styles.headerTitle}>나의 책장</Text>
 					</View>
-					{userBooks.length > 0 && (
+					{userBooks.length > 0 && canReorder && (
 						<Pressable onPress={toggleEditMode} style={styles.editButton}>
 							<Text style={styles.editButtonText}>
 								{editMode ? '완료' : '편집'}
@@ -70,11 +127,13 @@ export default function HomeScreen() {
 					)}
 				</View>
 
+				<SortBar current={sort} onChange={handleSortChange} />
+
 				{userBooks.length === 0 ? (
 					<View style={styles.center}>
 						<Text style={styles.emptyText}>아직 담은 책이 없어요</Text>
 						<Text style={styles.emptySubText}>
-							‘발견’ 탭에서 마음에 드는 책을 꽂아보세요
+							{'\'발견\' 탭에서 마음에 드는 책을 꽂아보세요'}
 						</Text>
 					</View>
 				) : (
@@ -180,4 +239,34 @@ const styles = StyleSheet.create({
 		lineHeight: 20,
 	},
 	footer: { paddingVertical: spacing.lg },
+});
+
+const sortStyles = StyleSheet.create({
+	wrap: { flexGrow: 0, marginBottom: spacing.sm },
+	row: {
+		flexDirection: 'row',
+		gap: spacing.sm,
+		paddingHorizontal: spacing.xxl,
+		paddingBottom: spacing.sm,
+	},
+	pill: {
+		paddingHorizontal: spacing.md,
+		paddingVertical: 6,
+		borderRadius: radius.pill,
+		borderWidth: 1,
+		borderColor: colors.border.strong,
+		backgroundColor: colors.surface,
+	},
+	pillActive: {
+		backgroundColor: colors.ink.primary,
+		borderColor: colors.ink.primary,
+	},
+	pillText: {
+		fontFamily: fonts.body,
+		fontSize: 12,
+		color: colors.ink.secondary,
+	},
+	pillTextActive: {
+		color: colors.surface,
+	},
 });

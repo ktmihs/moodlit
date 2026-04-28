@@ -5,7 +5,35 @@ import { supabase } from '../lib/supabase';
 import type { UserBook } from '../types/book';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.47.16.123:3000';
-const PAGE_SIZE = 21; // 3의 배수 (열 맞춤)
+const PAGE_SIZE = 21;
+
+export type SortOption = 'rank' | 'newest' | 'oldest' | 'recently_finished';
+
+const SORT_LABELS: Record<SortOption, string> = {
+	rank: '내 순서',
+	newest: '최신 등록',
+	oldest: '오래된 등록',
+	recently_finished: '최근 완독',
+};
+
+export { SORT_LABELS };
+
+const SELECT_FIELDS =
+	'id, rank, start_date, end_date, created_at, books (id, title, cover_image_url, genre)';
+
+function buildQuery(sort: SortOption) {
+	const q = supabase.from('user_books').select(SELECT_FIELDS);
+	switch (sort) {
+		case 'newest':
+			return q.order('created_at', { ascending: false });
+		case 'oldest':
+			return q.order('created_at', { ascending: true });
+		case 'recently_finished':
+			return q.order('end_date', { ascending: false, nullsFirst: false });
+		default:
+			return q.order('rank', { ascending: true });
+	}
+}
 
 export function useUserBooks() {
 	const [userBooks, setUserBooks] = useState<UserBook[]>([]);
@@ -14,19 +42,15 @@ export function useUserBooks() {
 	const [refreshing, setRefreshing] = useState(false);
 	const [hasMore, setHasMore] = useState(true);
 	const [page, setPage] = useState(0);
+	const [sort, setSort] = useState<SortOption>('rank');
+	const sortRef = useRef<SortOption>('rank');
 	const prevBooksRef = useRef<UserBook[]>([]);
 
 	const fetchPage = useCallback(async (pageIndex: number, replace: boolean) => {
 		const from = pageIndex * PAGE_SIZE;
 		const to = from + PAGE_SIZE - 1;
 
-		const { data, error } = await supabase
-			.from('user_books')
-			.select(
-				'id, rank, start_date, end_date, books (id, title, cover_image_url, genre)',
-			)
-			.order('rank', { ascending: true })
-			.range(from, to);
+		const { data, error } = await buildQuery(sortRef.current).range(from, to);
 
 		if (!error && data) {
 			setUserBooks(prev =>
@@ -42,9 +66,7 @@ export function useUserBooks() {
 	const fetchAll = useCallback(async () => {
 		const { data, error } = await supabase
 			.from('user_books')
-			.select(
-				'id, rank, start_date, end_date, books (id, title, cover_image_url, genre)',
-			)
+			.select(SELECT_FIELDS)
 			.order('rank', { ascending: true });
 
 		if (!error && data) {
@@ -52,10 +74,6 @@ export function useUserBooks() {
 			setHasMore(false);
 		}
 	}, []);
-
-	useEffect(() => {
-		fetchPage(0, true).finally(() => setLoading(false));
-	}, [fetchPage]);
 
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true);
@@ -71,6 +89,18 @@ export function useUserBooks() {
 			setLoadingMore(false);
 		},
 		[hasMore, loadingMore, page, fetchPage],
+	);
+
+	const changeSort = useCallback(
+		async (newSort: SortOption) => {
+			if (newSort === sortRef.current) return;
+			sortRef.current = newSort;
+			setSort(newSort);
+			setLoading(true);
+			await fetchPage(0, true);
+			setLoading(false);
+		},
+		[fetchPage],
 	);
 
 	const handleDragEnd = useCallback(
@@ -154,15 +184,22 @@ export function useUserBooks() {
 		[removeBook, restoreBook],
 	);
 
+	useEffect(() => {
+		fetchPage(0, true).finally(() => setLoading(false));
+	}, []); // eslint-disable-line react-hooks/exhaustive-deps
+
 	return {
 		userBooks,
 		loading,
 		loadingMore,
 		refreshing,
 		hasMore,
+		sort,
+		canReorder: sort === 'rank',
 		fetchAll,
 		onRefresh,
 		onEndReached,
+		changeSort,
 		handleDragEnd,
 		deleteBook,
 	};
