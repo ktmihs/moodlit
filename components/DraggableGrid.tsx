@@ -18,8 +18,9 @@ import Animated, {
 	useSharedValue,
 	withSpring,
 } from 'react-native-reanimated';
+import { deriveStatus } from '../hooks/useBookDetail';
 import { colors, fonts, radius, shadow } from '../lib/theme';
-import type { UserBook } from '../types/book';
+import type { ReadingStatus, UserBook } from '../types/book';
 
 if (
 	Platform.OS === 'android' &&
@@ -247,6 +248,22 @@ export function DraggableGrid({
 	);
 }
 
+// ── 상태 뱃지: 흰 글자와 강한 대비를 갖는 유기적 톤 팔레트 ──
+const STATUS_BADGE: Record<ReadingStatus, { label: string; style: object }> = {
+	want: { label: '읽고 싶어요', style: { backgroundColor: '#eedf9d' } },
+	reading: { label: '읽는 중', style: { backgroundColor: '#f5bab1' } },
+	finished: { label: '읽음', style: { backgroundColor: '#bbddeb' } },
+};
+
+function StatusBadge({ status }: { status: ReadingStatus }) {
+	const { label, style } = STATUS_BADGE[status];
+	return (
+		<View style={[styles.badge, style]}>
+			<Text style={styles.badgeText}>{label}</Text>
+		</View>
+	);
+}
+
 // ── Card content (shared between normal card and ghost) ──
 function CardContent({
 	item,
@@ -257,6 +274,7 @@ function CardContent({
 	cardWidth: number;
 	editing?: boolean;
 }) {
+	const status = deriveStatus(item);
 	return (
 		<View style={{ width: cardWidth }}>
 			<View style={[styles.coverWrapper, editing && styles.coverEditing]}>
@@ -273,6 +291,7 @@ function CardContent({
 						</Text>
 					</View>
 				)}
+				<StatusBadge status={status} />
 			</View>
 			<Text style={styles.bookTitle} numberOfLines={2}>
 				{item.books.title}
@@ -444,5 +463,22 @@ const styles = StyleSheet.create({
 		color: colors.surface,
 		fontSize: 13,
 		letterSpacing: 0.5,
+	},
+	badge: {
+		position: 'absolute',
+		top: 6,
+		right: 6,
+		paddingHorizontal: 7,
+		paddingVertical: 3,
+		borderRadius: radius.pill,
+		borderWidth: 1.5,
+		borderColor: colors.surface,
+	},
+	badgeText: {
+		fontFamily: fonts.bodyMedium,
+		fontSize: 9,
+		fontWeight: 500,
+		color: colors.ink.primary,
+		letterSpacing: 0.3,
 	},
 });
