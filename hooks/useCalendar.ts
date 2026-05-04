@@ -26,13 +26,22 @@ type MarkedDates = Record<string, { periods: PeriodMark[] }>;
 const MAX_BARS = 3;
 const OVERFLOW_COLOR = '#d0d0d0';
 
+// book.id 기반 결정적 색상 매핑 → 같은 책은 어느 달에서든 동일 색
+function colorForBook(bookId: string): string {
+	let h = 0;
+	for (let i = 0; i < bookId.length; i++) {
+		h = (h * 31 + bookId.charCodeAt(i)) | 0;
+	}
+	return HIGHLIGHT_COLORS[Math.abs(h) % HIGHLIGHT_COLORS.length];
+}
+
 // 이벤트 목록 → multi-period markedDates 변환 (하루 최대 MAX_BARS개, 초과 시 회색 ··· 막대)
 function buildPeriodMarks(events: CalendarEvent[]): MarkedDates {
 	const result: MarkedDates = {};
 
 	const today = new Date().toISOString().split('T')[0];
-	events.forEach((ev, idx) => {
-		const color = HIGHLIGHT_COLORS[idx % HIGHLIGHT_COLORS.length];
+	events.forEach(ev => {
+		const color = colorForBook(ev.book.id);
 		const start = new Date(ev.start_date);
 		const endStr = ev.end_date ?? today;
 		const end = new Date(endStr);

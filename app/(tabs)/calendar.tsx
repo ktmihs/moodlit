@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
 	ActivityIndicator,
 	ScrollView,
@@ -96,13 +96,17 @@ export default function CalendarScreen() {
 		useCalendar();
 	const [selectedDate, setSelectedDate] = useState<string>('');
 
+	// useFocusEffect deps 에 currentMonth 를 넣으면 fetchMonth → setCurrentMonth → 재실행으로 중복 호출됨
+	const currentMonthRef = useRef(currentMonth);
+	currentMonthRef.current = currentMonth;
+
 	useFocusEffect(
 		useCallback(() => {
-			fetchMonth(currentMonth);
+			fetchMonth(currentMonthRef.current);
 			return () => {
 				setSelectedDate('');
 			};
-		}, [fetchMonth, currentMonth]),
+		}, [fetchMonth]),
 	);
 
 	const handleMonthChange = (month: { dateString: string }) => {
