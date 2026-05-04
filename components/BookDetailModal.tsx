@@ -14,6 +14,7 @@ import {
 	TextInput,
 	View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { useBookDetail } from '../hooks/useBookDetail';
 import { colors, fonts, radius, shadow, spacing } from '../lib/theme';
 import type {
@@ -697,6 +698,7 @@ export function BookDetailModal({ userBook, visible, onClose }: Props) {
 					)}
 				</View>
 			</KeyboardAvoidingView>
+			<Toast />
 		</Modal>
 	);
 }

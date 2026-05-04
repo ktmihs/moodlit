@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 import { BookDetailModal } from '../../components/BookDetailModal';
 import { DraggableGrid } from '../../components/DraggableGrid';
 import {
@@ -76,6 +77,7 @@ function SortSheet({
 					</Pressable>
 				))}
 			</View>
+			<Toast />
 		</Modal>
 	);
 }

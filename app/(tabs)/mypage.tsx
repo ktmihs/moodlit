@@ -106,7 +106,10 @@ export default function MyPageScreen() {
 			if (error) throw error;
 			setDisplayName(nextValue);
 			setEditVisible(false);
-			Toast.show({ type: 'success', text1: '이름이 변경됐어요.' });
+			// 모달 fade-out 완료 후 루트 Toast 가 받도록 지연
+			setTimeout(() => {
+				Toast.show({ type: 'success', text1: '이름이 변경됐어요.' });
+			}, 300);
 		} catch (err: unknown) {
 			Toast.show({
 				type: 'error',
@@ -353,6 +356,7 @@ export default function MyPageScreen() {
 						</View>
 					</View>
 				</KeyboardAvoidingView>
+				<Toast />
 			</Modal>
 		</ScrollView>
 	);
