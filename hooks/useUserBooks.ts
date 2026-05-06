@@ -4,7 +4,7 @@ import { showApiError } from '../lib/apiError';
 import { supabase } from '../lib/supabase';
 import type { UserBook } from '../types/book';
 
-const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://10.47.16.123:3000';
+const API_BASE = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 const PAGE_SIZE = 21;
 
 export type SortOption = 'rank' | 'newest' | 'oldest' | 'recently_finished';
