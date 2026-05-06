@@ -239,10 +239,20 @@ async function buildRecommendations(
 	return sorted.map(({ score: _score, ...rest }) => rest);
 }
 
-// ── GET /recommendations/aggregate?min_rating=N ──
+function shuffleArray<T>(arr: T[]): T[] {
+	const a = [...arr];
+	for (let i = a.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[a[i], a[j]] = [a[j], a[i]];
+	}
+	return a;
+}
+
+// ── GET /recommendations/aggregate?min_rating=N&shuffle=true ──
 router.get('/aggregate', async (req, res) => {
 	const raw = parseInt(req.query.min_rating as string);
 	const minRating = Number.isNaN(raw) ? 4 : Math.min(5, Math.max(1, raw));
+	const doShuffle = req.query.shuffle === 'true';
 	const { supabase, user } = req.auth;
 	const admin = getAdminClient();
 
@@ -320,14 +330,14 @@ router.get('/aggregate', async (req, res) => {
 		}
 	}
 
-	const result = Array.from(merged.values())
-		.sort(
-			(a, b) =>
-				b.count - a.count ||
-				(b.book.similarity ?? 0) - (a.book.similarity ?? 0),
-		)
-		.slice(0, 20)
-		.map(({ book }) => book);
+	const sorted = Array.from(merged.values()).sort(
+		(a, b) =>
+			b.count - a.count ||
+			(b.book.similarity ?? 0) - (a.book.similarity ?? 0),
+	);
+
+	const candidates = doShuffle ? shuffleArray(sorted) : sorted.slice(0, 20);
+	const result = candidates.slice(0, 20).map(({ book }) => book);
 
 	return void apiSuccess(res, {
 		recommendations: result,

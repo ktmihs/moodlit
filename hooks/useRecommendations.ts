@@ -13,14 +13,16 @@ export function useRecommendations() {
 	const [pendingCount, setPendingCount] = useState(0);
 	const [minRating, setMinRating] = useState(4);
 
-	const fetchAggregate = useCallback(async (rating: number) => {
+	const fetchAggregate = useCallback(async (rating: number, shuffle = false) => {
 		setLoading(true);
 		try {
 			const {
 				data: { session },
 			} = await supabase.auth.getSession();
+			const params = new URLSearchParams({ min_rating: String(rating) });
+			if (shuffle) params.set('shuffle', 'true');
 			const res = await fetch(
-				`${API_BASE}/recommendations/aggregate?min_rating=${rating}`,
+				`${API_BASE}/recommendations/aggregate?${params.toString()}`,
 				{ headers: { Authorization: `Bearer ${session?.access_token}` } },
 			);
 			await handleApiResponse(res);
@@ -43,7 +45,7 @@ export function useRecommendations() {
 	);
 
 	const refresh = useCallback(
-		() => fetchAggregate(minRating),
+		(shuffle = false) => fetchAggregate(minRating, shuffle),
 		[fetchAggregate, minRating],
 	);
 

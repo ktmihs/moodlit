@@ -1,7 +1,9 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import {
+	Animated,
 	ActivityIndicator,
 	FlatList,
 	Pressable,
@@ -115,6 +117,16 @@ export default function RecommendScreen() {
 	const insets = useSafeAreaInsets();
 	const { recommendations, loading, pendingCount, minRating, changeRating, refresh } =
 		useRecommendations();
+	const spinValue = useRef(new Animated.Value(0)).current;
+
+	const handleShuffleRefresh = useCallback(() => {
+		Animated.timing(spinValue, {
+			toValue: 1,
+			duration: 500,
+			useNativeDriver: true,
+		}).start(() => spinValue.setValue(0));
+		refresh(true);
+	}, [refresh, spinValue]);
 
 	useFocusEffect(
 		useCallback(() => {
@@ -122,11 +134,40 @@ export default function RecommendScreen() {
 		}, [refresh]),
 	);
 
+	const spinStyle = {
+		transform: [
+			{
+				rotate: spinValue.interpolate({
+					inputRange: [0, 1],
+					outputRange: ['0deg', '360deg'],
+				}),
+			},
+		],
+	};
+
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
 			<View style={styles.header}>
-				<Text style={styles.eyebrow}>당신을 위한</Text>
-				<Text style={styles.headerTitle}>추천 도서</Text>
+				<View style={styles.headerRow}>
+					<View>
+						<Text style={styles.eyebrow}>당신을 위한</Text>
+						<Text style={styles.headerTitle}>추천 도서</Text>
+					</View>
+					<Pressable
+						onPress={handleShuffleRefresh}
+						disabled={loading}
+						hitSlop={12}
+						style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+					>
+						<Animated.View style={spinStyle}>
+							<Ionicons
+								name={'refresh'}
+								size={22}
+								color={loading ? colors.ink.muted : colors.ink.primary}
+							/>
+						</Animated.View>
+					</Pressable>
+				</View>
 			</View>
 
 			<StarFilterBar minRating={minRating} onChange={changeRating} />
@@ -164,7 +205,7 @@ export default function RecommendScreen() {
 					refreshControl={
 						<RefreshControl
 							refreshing={false}
-							onRefresh={refresh}
+							onRefresh={handleShuffleRefresh}
 							tintColor={colors.ink.muted}
 						/>
 					}
@@ -181,6 +222,11 @@ const styles = StyleSheet.create({
 		paddingHorizontal: spacing.xxl,
 		paddingTop: spacing.lg,
 		paddingBottom: spacing.lg,
+	},
+	headerRow: {
+		flexDirection: 'row',
+		alignItems: 'flex-end',
+		justifyContent: 'space-between',
 	},
 	eyebrow: {
 		fontFamily: fonts.body,
