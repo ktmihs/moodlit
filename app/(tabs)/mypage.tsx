@@ -23,8 +23,8 @@ import { supabase } from '../../lib/supabase';
 import { colors, fonts, radius, shadow, spacing } from '../../lib/theme';
 
 const SUPPORT_EMAIL = 'yellowgreen423@gmail.com';
-const PRIVACY_URL = 'https://mood-lit-backend.fly.dev/privacy';
-const TERMS_URL = 'https://mood-lit-backend.fly.dev/terms';
+const PRIVACY_URL = 'https://moodlit.up.railway.app/privacy';
+const TERMS_URL = 'https://moodlit.up.railway.app/terms';
 
 const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 const DISPLAY_NAME_MAX = 20;
